@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Download, Upload, Printer, Key, Sparkles, Film, Trash } from 'lucide-react';
+import { Plus, Download, Upload, Printer, Key, Sparkles, Film, Trash, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import StoryboardFrame from './components/StoryboardFrame';
+
+// Master passcode for accessing the page (can be customized)
+const MASTER_PASSCODE = 'storyboard123';
 
 export default function App() {
   const [projectTitle, setProjectTitle] = useState('무제 스토리보드');
@@ -21,8 +24,32 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
 
-  // Load API Key from localStorage on mount
+  // Authentication State
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [inputPasscode, setInputPasscode] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  // Load configuration & Auth on mount
   useEffect(() => {
+    // 1. Check URL parameters for auto-auth (e.g. ?code=storyboard123)
+    const params = new URLSearchParams(window.location.search);
+    const urlCode = params.get('code');
+    
+    // 2. Check local storage for previous auth
+    const savedAuth = localStorage.getItem('storyboard_authorized');
+
+    if (urlCode === MASTER_PASSCODE) {
+      setIsAuthorized(true);
+      localStorage.setItem('storyboard_authorized', 'true');
+      triggerToast('링크 코드로 자동 로그인되었습니다.');
+      // Clean up the URL parameter for aesthetics
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (savedAuth === 'true') {
+      setIsAuthorized(true);
+    }
+
+    // Load other settings
     const savedKey = localStorage.getItem('gemini_api_key');
     if (savedKey) setGeminiApiKey(savedKey);
     
@@ -60,6 +87,25 @@ export default function App() {
     const val = e.target.value;
     setGeminiApiKey(val);
     localStorage.setItem('gemini_api_key', val);
+  };
+
+  const handlePasscodeSubmit = (e) => {
+    e.preventDefault();
+    if (inputPasscode === MASTER_PASSCODE) {
+      setIsAuthorized(true);
+      localStorage.setItem('storyboard_authorized', 'true');
+      setAuthError('');
+      triggerToast('로그인 성공!');
+    } else {
+      setAuthError('비밀번호가 올바르지 않습니다. 다시 입력해 주세요.');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthorized(false);
+    localStorage.removeItem('storyboard_authorized');
+    setInputPasscode('');
+    triggerToast('로그아웃되었습니다.');
   };
 
   const handleAddFrame = () => {
@@ -102,7 +148,6 @@ export default function App() {
   const handleExportJson = () => {
     const dataStr = JSON.stringify({ projectTitle, frames }, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
     const exportFileDefaultName = `${projectTitle.replace(/\s+/g, '_')}_storyboard.json`;
     
     const linkElement = document.createElement('a');
@@ -146,6 +191,66 @@ export default function App() {
     }
   };
 
+  const copyShareLink = () => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?code=${MASTER_PASSCODE}`;
+    navigator.clipboard.writeText(shareUrl);
+    triggerToast('자동 로그인 링크가 복사되었습니다!');
+  };
+
+  // --- Auth Render Screen ---
+  if (!isAuthorized) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb', padding: '2rem' }}>
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', padding: '3rem 2.5rem', borderRadius: '12px', width: '100%', maxWidth: '420px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{ backgroundColor: '#0f172a', color: '#ffffff', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+              <Lock size={20} />
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: '#111827', marginBottom: '0.5rem' }}>Storyboard Studio</h2>
+            <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: '1.4' }}>
+              비공개 스토리보드 제작 페이지입니다.<br />공유받으신 패스코드 비밀번호를 입력해 주세요.
+            </p>
+          </div>
+
+          <form onSubmit={handlePasscodeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={inputPasscode}
+                onChange={(e) => setInputPasscode(e.target.value)}
+                placeholder="비밀번호 입력"
+                style={{ width: '100%', padding: '0.75rem 1rem', paddingRight: '2.5rem', border: '1px solid #e5e7eb', borderRadius: '8px', outline: 'none', fontSize: '0.95rem' }}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+
+            {authError && (
+              <p style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 500 }}>{authError}</p>
+            )}
+
+            <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem', width: '100%', borderRadius: '8px', fontSize: '0.95rem' }}>
+              입장하기
+            </button>
+          </form>
+
+          <div style={{ marginTop: '2rem', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem', textAlign: 'center' }}>
+            <p style={{ fontSize: '0.75rem', color: '#9ca3af', lineHeight: '1.4' }}>
+              * 자동 로그인이 제공되는 공유용 링크를 받으신 분은 링크 클릭만으로 즉시 입장할 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Authorized Main App Render ---
   return (
     <div className="app-container">
       {/* Top Header */}
@@ -208,11 +313,34 @@ export default function App() {
         <div className="config-item">
           <button 
             type="button" 
+            className="btn btn-secondary btn-sm"
+            onClick={copyShareLink}
+            title="팀원 공유용 자동 로그인 주소 복사"
+            style={{ borderColor: 'var(--text-muted)' }}
+          >
+            <Unlock size={12} /> 공유용 링크 복사
+          </button>
+        </div>
+
+        <div className="config-item">
+          <button 
+            type="button" 
             className="btn btn-secondary btn-sm btn-danger-light"
             onClick={handleClearAll}
             title="스토리보드 초기화"
           >
             <Trash size={12} /> 전체 초기화
+          </button>
+        </div>
+
+        <div className="config-item">
+          <button 
+            type="button" 
+            className="btn btn-secondary btn-sm"
+            onClick={handleLogout}
+            title="로그아웃"
+          >
+            로그아웃
           </button>
         </div>
       </div>
