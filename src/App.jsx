@@ -1,10 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Download, Upload, Printer, Key, Sparkles, Film, Trash, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Download, Upload, Printer, Key, Sparkles, Film, Trash, Lock, Unlock, Eye, EyeOff, X, AlertCircle } from 'lucide-react';
 import StoryboardFrame from './components/StoryboardFrame';
 import ModelPromptGenerator from './components/ModelPromptGenerator';
 
 // Master passcode for accessing the page (can be customized)
 const MASTER_PASSCODE = 'storyboard123';
+
+const OFFLINE_CAMPAIGNS = {
+  cosmetics: {
+    title: '에센스 수분 충전 캠페인 (4컷)',
+    cuts: [
+      { story: '아침 이슬이 맺힌 에센스 용기가 하얀 대리석 위에 놓여있다. 부드러운 아침 햇살이 비친다.', stylePreset: 'highend_ad', shotType: 'cu', cameraMove: 'static', tone: 'bright', colorPalette: 'pastel' },
+      { story: '모델의 얼굴이 화면을 채운다. 피부 위에 에센스 물방울이 떨어지며 부드럽게 흡수된다.', stylePreset: 'highend_ad', shotType: 'ecu', cameraMove: 'zoomin', tone: 'bright', colorPalette: 'pastel' },
+      { story: '맑은 숲 속을 배경으로 바람을 맞으며 웃고 있는 모델의 전신 샷. 청량함이 느껴진다.', stylePreset: 'cinematic', shotType: 'fs', cameraMove: 'pan', tone: 'dreamy', colorPalette: 'natural' },
+      { story: '에센스 제품과 꽃잎이 배치된 마지막 브랜드 연출 샷. 우측 하단에 로고와 브랜드 카피가 나타난다.', stylePreset: 'highend_ad', shotType: 'ms', cameraMove: 'static', tone: 'bright', colorPalette: 'pastel' }
+    ]
+  },
+  tech: {
+    title: '스마트 워치 액티브 추적 캠페인 (4컷)',
+    cuts: [
+      { story: '어두운 밤, 네온 조명 아래 서 있는 러너가 손목을 보며 출발 준비를 한다.', stylePreset: 'highend_ad', shotType: 'ls', cameraMove: 'static', tone: 'dark', colorPalette: 'cyberpunk' },
+      { story: '러너가 도심 속을 빠르게 질주하고, 역동적으로 움직이는 러너의 발과 주변 거리가 트래킹된다.', stylePreset: 'cinematic', shotType: 'ms', cameraMove: 'tracking', tone: 'suspense', colorPalette: 'cyberpunk' },
+      { story: '달리는 도중 손목을 흘끗 보며 심박수 페이스를 체크하는 클로즈업. 스마트 워치가 밝게 빛난다.', stylePreset: 'highend_ad', shotType: 'cu', cameraMove: 'zoomin', tone: 'dark', colorPalette: 'cyberpunk' },
+      { story: '스마트 워치 제품 단독 렌더링 샷. 세련된 매트 블랙 바디가 회전하며 텍스트 로고가 드러난다.', stylePreset: 'highend_ad', shotType: 'ms', cameraMove: 'static', tone: 'dark', colorPalette: 'highcontrast' }
+    ]
+  },
+  drink: {
+    title: '탄산수 익스트림 스파클링 캠페인 (4컷)',
+    cuts: [
+      { story: '얼음이 가득 든 투명한 유리잔에 탄산수가 쏟아지는 극도의 클로즈업 샷. 탄산이 튀어 오른다.', stylePreset: 'cinematic', shotType: 'ecu', cameraMove: 'static', tone: 'bright', colorPalette: 'blue' },
+      { story: '모델이 탄산수 병을 들고 시원하게 들이킨 후 청량하고 활기찬 미소를 짓는다.', stylePreset: 'cinematic', shotType: 'ms', cameraMove: 'pan', tone: 'bright', colorPalette: 'blue' },
+      { story: '라임 조각이 탄산수 속으로 떨어지며 시원한 물방울 파편들이 슬로우 모션으로 퍼진다.', stylePreset: 'cinematic', shotType: 'cu', cameraMove: 'zoomout', tone: 'dreamy', colorPalette: 'blue' },
+      { story: '잔잔한 물결 위 탄산수 제품 패키지가 정렬된 마지막 연출 샷. 브랜드 로고 배치.', stylePreset: 'highend_ad', shotType: 'ms', cameraMove: 'static', tone: 'bright', colorPalette: 'pastel' }
+    ]
+  },
+  fashion: {
+    title: '럭셔리 명품백 무드 필름 (4컷)',
+    cuts: [
+      { story: '안개가 자욱한 미니멀 디자인의 대리석 복도 끝, 모델의 우아한 뒷모습과 가방이 포착된다.', stylePreset: 'highend_ad', shotType: 'ls', cameraMove: 'static', tone: 'cinematic', colorPalette: 'monochrome' },
+      { story: '가죽 핸드백의 금속 로고 장식과 정교한 바느질 가죽 질감이 렘브란트 조명 아래 클로즈업된다.', stylePreset: 'highend_ad', shotType: 'ecu', cameraMove: 'zoomin', tone: 'cinematic', colorPalette: 'amber' },
+      { story: '바람을 맞으며 고급 가방을 품에 안고 카메라를 강렬하게 응시하는 모델의 바스트 샷.', stylePreset: 'highend_ad', shotType: 'bs', cameraMove: 'static', tone: 'cinematic', colorPalette: 'highcontrast' },
+      { story: '고급스러운 벨벳 매트 배경 위 올려진 핸드백 단독 샷. 브랜드 타이포그래피가 오버레이된다.', stylePreset: 'highend_ad', shotType: 'ms', cameraMove: 'static', tone: 'cinematic', colorPalette: 'amber' }
+    ]
+  }
+};
+
+const parseBase64Image = (dataUrl) => {
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.-]+);base64,(.+)$/);
+  if (!match) return null;
+  return {
+    mimeType: match[1],
+    data: match[2]
+  };
+};
 
 export default function App() {
   const [projectTitle, setProjectTitle] = useState('무제 스토리보드');
@@ -30,6 +78,15 @@ export default function App() {
   const [inputPasscode, setInputPasscode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
+
+  // Storyboard Auto Generator Modal States
+  const [isGeneratorModalOpen, setIsGeneratorModalOpen] = useState(false);
+  const [generatorCategory, setGeneratorCategory] = useState('cosmetics');
+  const [generatorProductDesc, setGeneratorProductDesc] = useState('');
+  const [generatorNumCuts, setGeneratorNumCuts] = useState(4);
+  const [generatorImage, setGeneratorImage] = useState(null);
+  const [generatorLoading, setGeneratorLoading] = useState(false);
+  const genFileInputRef = useRef(null);
 
   // Load configuration & Auth on mount
   useEffect(() => {
@@ -198,6 +255,149 @@ export default function App() {
     triggerToast('자동 로그인 링크가 복사되었습니다!');
   };
 
+  // --- Campaign Auto Generator Logic ---
+  const handleGenImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setGeneratorImage(event.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGenerateCampaign = async () => {
+    // 1. If keyless and selected standard preset
+    if (!geminiApiKey && generatorCategory !== 'custom') {
+      const selectedCampaign = OFFLINE_CAMPAIGNS[generatorCategory];
+      if (selectedCampaign) {
+        if (window.confirm(`"${selectedCampaign.title}" 시안 템플릿으로 스토리보드를 재구성하시겠습니까? (기존 데이터가 덮어씌워집니다)`)) {
+          const loadedFrames = selectedCampaign.cuts.map((cut, idx) => ({
+            id: `frame-${idx}-${Date.now()}`,
+            story: cut.story,
+            stylePreset: cut.stylePreset,
+            shotType: cut.shotType,
+            cameraMove: cut.cameraMove,
+            tone: cut.tone,
+            colorPalette: cut.colorPalette,
+            aspectRatio: '16:9',
+            image: idx === 0 && generatorImage ? generatorImage : null // Put uploaded product image in the first cut
+          }));
+          setFrames(loadedFrames);
+          setProjectTitle(selectedCampaign.title);
+          setIsGeneratorModalOpen(false);
+          triggerToast('템플릿 스토리보드가 자동으로 구성되었습니다.');
+        }
+      }
+      return;
+    }
+
+    // 2. If Gemini API is used or custom prompt is requested
+    if (!geminiApiKey) {
+      alert('커스텀 주제나 AI 분석 스토리보드를 작성하려면 상단 설정에서 Gemini API Key를 입력하셔야 합니다.');
+      return;
+    }
+
+    setGeneratorLoading(true);
+
+    try {
+      let promptText = `Generate a structured, cohesive advertising storyboard sequence consisting of exactly ${generatorNumCuts} scene cuts (written in Korean) for this product campaign.
+Product Category / Subject: "${generatorCategory !== 'custom' ? generatorCategory : 'Custom'}"
+Campaign Topic/Description: "${generatorProductDesc || 'A premium ad campaign'}"
+
+The sequence of cuts must flow logically like a real commercial:
+- Cut 1: The opening hook or product reveal.
+- Inner cuts: Show features, usage, and model interactions.
+- Final Cut: Outro branding with Call to Action (CTA) or product display.
+
+For each scene cut, return exactly:
+1. "story": The scene's script, action details, and camera movement in Korean.
+2. "stylePreset": Select one of: cinematic, highend_ad, anime, webtoon, disney3d, concept, lineart, pencil.
+3. "shotType": Select one of: ecu, cu, ms, bs, fs, ls, ha, la, oh.
+4. "cameraMove": Select one of: static, pan, tilt, zoomin, zoomout, tracking.
+5. "tone": Select one of: dreamy, cinematic, dark, bright, sad, suspense, retro.
+6. "colorPalette": Select one of: amber, blue, monochrome, cyberpunk, pastel, highcontrast, natural.
+
+Return the result as a JSON array of exactly ${generatorNumCuts} objects. Do not write markdown wraps like \`\`\`json.`;
+
+      // Multimodal payload setup if product image is uploaded
+      let contentsPayload = [];
+      const parsedImage = generatorImage ? parseBase64Image(generatorImage) : null;
+
+      if (parsedImage) {
+        promptText += `\nNote: The user has uploaded a product image. Analyze this product image to make the storyboard sequence specifically tailored to its packaging, branding, and category.`;
+        contentsPayload = [
+          {
+            parts: [
+              { text: promptText },
+              {
+                inlineData: {
+                  mimeType: parsedImage.mimeType,
+                  data: parsedImage.data
+                }
+              }
+            ]
+          }
+        ];
+      } else {
+        contentsPayload = [
+          {
+            parts: [{ text: promptText }]
+          }
+        ];
+      }
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: contentsPayload,
+            generationConfig: {
+              responseMimeType: "application/json"
+            }
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('API 호출에 실패했습니다. 키가 정확한지 확인해 주세요.');
+      }
+
+      const data = await response.json();
+      const textResponse = data.candidates[0].content.parts[0].text;
+      const parsed = JSON.parse(textResponse);
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const loadedFrames = parsed.map((cut, idx) => ({
+          id: `frame-${idx}-${Date.now()}`,
+          story: cut.story,
+          stylePreset: cut.stylePreset || 'highend_ad',
+          shotType: cut.shotType || 'ms',
+          cameraMove: cut.cameraMove || 'static',
+          tone: cut.tone || 'cinematic',
+          colorPalette: cut.colorPalette || 'amber',
+          aspectRatio: '16:9',
+          image: idx === 0 && generatorImage ? generatorImage : null // Place image on first cut
+        }));
+        setFrames(loadedFrames);
+        setProjectTitle(`${generatorProductDesc || 'AI 생성'} 광고 캠페인 (${parsed.length}컷)`);
+        setIsGeneratorModalOpen(false);
+        triggerToast('AI 맞춤형 스토리보드가 자동으로 구성되었습니다!');
+      } else {
+        throw new Error('스토리보드 데이터 배열 해석 오류');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || '스토리보드 생성 중 오류가 발생했습니다.');
+    } finally {
+      setGeneratorLoading(false);
+    }
+  };
+
   // --- Auth Render Screen ---
   if (!isAuthorized) {
     return (
@@ -263,6 +463,14 @@ export default function App() {
         </div>
 
         <div className="header-actions">
+          <button 
+            type="button" 
+            className="btn btn-primary" 
+            onClick={() => setIsGeneratorModalOpen(true)}
+            style={{ display: 'flex', gap: '0.25rem', padding: '0.5rem 1.25rem' }}
+          >
+            <Sparkles size={16} /> AI 전체 스토리보드 자동 구성
+          </button>
           <button type="button" className="btn btn-secondary" onClick={handlePrint}>
             <Printer size={16} /> 인쇄 / PDF 저장
           </button>
@@ -389,6 +597,168 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* --- AI Ad Storyboard Auto Generator Modal --- */}
+      {isGeneratorModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.3)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '2rem'
+          }} 
+          onClick={() => setIsGeneratorModalOpen(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '520px',
+              boxShadow: 'var(--shadow-lg)',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'fadeIn 0.2s ease-out'
+            }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)' }}>
+                <Sparkles size={16} style={{ color: 'var(--accent-color)' }} />
+                AI 전체 스토리보드 자동 구성
+              </h3>
+              <button 
+                type="button" 
+                className="btn btn-text btn-sm"
+                onClick={() => setIsGeneratorModalOpen(false)}
+                style={{ padding: '4px' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700 }}>캠페인 제품 카테고리</label>
+                <select 
+                  value={generatorCategory} 
+                  onChange={(e) => setGeneratorCategory(e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  <option value="cosmetics">화장품 (Cosmetics)</option>
+                  <option value="tech">IT / 전자기기 (Tech/IT)</option>
+                  <option value="drink">식음료 (F&B / Drinks)</option>
+                  <option value="fashion">패션 / 명품 (Luxury / Fashion)</option>
+                  <option value="custom">직접 입력 (AI 분석 필요)</option>
+                </select>
+              </div>
+
+              {/* Upload Product Image */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700 }}>제품 이미지 첨부 (선택사항)</label>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  {generatorImage ? (
+                    <div style={{ position: 'relative', width: '56px', height: '56px' }}>
+                      <img src={generatorImage} alt="Product Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'contain', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                      <button 
+                        type="button" 
+                        onClick={() => setGeneratorImage(null)}
+                        style={{ position: 'absolute', top: '-4px', right: '-4px', backgroundColor: 'var(--danger-color)', color: '#ffffff', border: 'none', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px' }}
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => genFileInputRef.current.click()}
+                      style={{ fontSize: '0.75rem', padding: '0.5rem 1rem' }}
+                    >
+                      <Upload size={12} /> 이미지 올리기
+                    </button>
+                  )}
+                  <input 
+                    type="file" 
+                    ref={genFileInputRef} 
+                    onChange={handleGenImageUpload} 
+                    accept="image/*" 
+                    style={{ display: 'none' }} 
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                    이미지를 업로드하면 AI가 패키지를 직접 보고 분석합니다.
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700 }}>광고 주제 및 상세 설명 (AI 필수)</label>
+                <textarea
+                  value={generatorProductDesc}
+                  onChange={(e) => setGeneratorProductDesc(e.target.value)}
+                  placeholder="예: 민감한 피부를 진정시키는 유기농 시카 에센스 론칭 광고. 혹은 프리미엄 티타늄 스마트링 소개."
+                  style={{ minHeight: '80px', width: '100%' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.375rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700 }}>생성할 컷 수</label>
+                  <select 
+                    value={generatorNumCuts} 
+                    onChange={(e) => setGeneratorNumCuts(parseInt(e.target.value))}
+                    disabled={!geminiApiKey && generatorCategory !== 'custom'} // Lock cuts for offline presets
+                  >
+                    <option value="3">3컷 (초간결 콘셉트)</option>
+                    <option value="4">4컷 (표준 캠페인)</option>
+                    <option value="5">5컷 (상세 기획)</option>
+                    <option value="6">6컷 (풀 시나리오)</option>
+                  </select>
+                  {!geminiApiKey && generatorCategory !== 'custom' && (
+                    <span style={{ fontSize: '0.65rem', color: '#b45309' }}>
+                      * API 키가 없는 템플릿 모드에서는 4컷 표준 템플릿이 로드됩니다.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {generatorLoading ? (
+                <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-secondary)' }}>
+                  <Sparkles size={18} className="animate-spin" style={{ margin: '0 auto 0.5rem', color: 'var(--text-muted)' }} />
+                  <p style={{ fontSize: '0.775rem' }}>AI가 제품 이미지를 분석하고 스토리라인 및 연출 구성안을 작성 중입니다...</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => setIsGeneratorModalOpen(false)}
+                    style={{ flex: 1 }}
+                  >
+                    취소
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-primary" 
+                    onClick={handleGenerateCampaign}
+                    style={{ flex: 2 }}
+                  >
+                    스토리보드 구성 시작
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Toast Notification */}
       <div className={`toast ${showToast ? 'show' : ''}`}>
