@@ -81,6 +81,8 @@ const BACKGROUNDS = [
 
 const CAMERAS = [
   { ko: 'Hasselblad H6D (럭셔리 중형)', en: 'shot on Hasselblad H6D-100c, 80mm lens, f/2.8' },
+  { ko: 'Leica M11 (레전드 라이카)', en: 'shot on Leica M11, Summilux-M 50mm f/1.4 ASPH lens' },
+  { ko: 'Fujifilm GFX 100S (중형 색감)', en: 'shot on Fujifilm GFX 100S, GF 110mm f/2 R LM WR lens' },
   { ko: 'Sony a7R V (인물 최적)', en: 'shot on Sony a7R V, 85mm f/1.4 GM lens' },
   { ko: 'Canon EOS R5 (표준 단렌즈)', en: 'shot on Canon EOS R5, 50mm f/1.2 L lens' },
   { ko: 'Arri Alexa Mini (시네마틱)', en: 'filmed on Arri Alexa Mini, Master Prime lens' }
