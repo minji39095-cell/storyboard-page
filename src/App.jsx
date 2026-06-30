@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Download, Upload, Printer, Key, Sparkles, Film, Trash, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import StoryboardFrame from './components/StoryboardFrame';
+import ModelPromptGenerator from './components/ModelPromptGenerator';
 
 // Master passcode for accessing the page (can be customized)
 const MASTER_PASSCODE = 'storyboard123';
@@ -347,38 +348,46 @@ export default function App() {
 
       {/* Main Workspace */}
       <main className="main-content">
-        {frames.length === 0 ? (
-          <div className="empty-state">
-            <Film className="empty-icon" />
-            <h3 className="empty-title">작성된 씬 컷이 없습니다</h3>
-            <p className="empty-desc">새로운 씬 컷을 추가하고 프롬프트를 만들어 보세요.</p>
-            <button type="button" className="btn btn-primary" onClick={handleAddFrame}>
-              <Plus size={16} /> 첫 씬 컷 추가하기
-            </button>
-          </div>
-        ) : (
-          <div className="storyboard-grid">
-            {frames.map((frame, index) => (
-              <StoryboardFrame
-                key={frame.id}
-                frame={frame}
-                index={index}
-                totalFrames={frames.length}
-                onUpdate={handleUpdateFrame}
-                onDelete={handleDeleteFrame}
-                onMove={handleMoveFrame}
-                geminiApiKey={geminiApiKey}
-                showToast={triggerToast}
-              />
-            ))}
+        <div className="main-workspace">
+          {/* Left Sidebar: Human Model Prompt Generator */}
+          <ModelPromptGenerator showToast={triggerToast} />
 
-            {/* Fast Add Cut Card */}
-            <div className="add-cut-card" onClick={handleAddFrame}>
-              <Plus className="add-cut-icon" />
-              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>새 씬 컷 추가</span>
-            </div>
+          {/* Right Area: Storyboard Workspace */}
+          <div className="board-area">
+            {frames.length === 0 ? (
+              <div className="empty-state" style={{ margin: '2rem auto' }}>
+                <Film className="empty-icon" />
+                <h3 className="empty-title">작성된 씬 컷이 없습니다</h3>
+                <p className="empty-desc">새로운 씬 컷을 추가하고 프롬프트를 만들어 보세요.</p>
+                <button type="button" className="btn btn-primary" onClick={handleAddFrame}>
+                  <Plus size={16} /> 첫 씬 컷 추가하기
+                </button>
+              </div>
+            ) : (
+              <div className="storyboard-grid" style={{ marginTop: 0 }}>
+                {frames.map((frame, index) => (
+                  <StoryboardFrame
+                    key={frame.id}
+                    frame={frame}
+                    index={index}
+                    totalFrames={frames.length}
+                    onUpdate={handleUpdateFrame}
+                    onDelete={handleDeleteFrame}
+                    onMove={handleMoveFrame}
+                    geminiApiKey={geminiApiKey}
+                    showToast={triggerToast}
+                  />
+                ))}
+
+                {/* Fast Add Cut Card */}
+                <div className="add-cut-card" onClick={handleAddFrame} style={{ minHeight: '380px' }}>
+                  <Plus className="add-cut-icon" />
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>새 씬 컷 추가</span>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </main>
 
       {/* Floating Toast Notification */}

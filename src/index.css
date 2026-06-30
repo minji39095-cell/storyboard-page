@@ -573,6 +573,45 @@ textarea {
   width: 250px;
 }
 
+/* Split Layout for Model Generator & Workspace */
+.main-workspace {
+  display: flex;
+  gap: 2rem;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  align-items: flex-start;
+}
+
+.model-sidebar {
+  width: 320px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.board-area {
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .main-workspace {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .model-sidebar {
+    width: 100%;
+    position: static;
+  }
+}
+
 /* Print CSS */
 @media print {
   body {
