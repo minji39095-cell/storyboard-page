@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Copy, Sparkles, AlertCircle } from 'lucide-react';
 
 export const STYLES = {
-  cinematic: { ko: '영화 스틸컷', en: 'Cinematic movie still, photorealistic, 8k resolution, shot on 35mm lens, highly detailed textures' },
-  anime: { ko: '애니메이션', en: 'Anime style, highly detailed digital illustration, vibrant colors, studio Ghibli aesthetic, clean lines' },
-  webtoon: { ko: '웹툰', en: 'Korean webtoon illustration style, line art, cell shaded, high quality manhwa cover art' },
-  disney3d: { ko: '디즈니 3D', en: '3D animated movie render, Pixar style, cute character design, soft lighting, octane render' },
-  concept: { ko: '컨셉 아트', en: 'Concept art, digital painting, dramatic composition, atmospheric perspective, artstation trending' },
-  lineart: { ko: '라인 드로잉', en: 'Minimalist line drawing, clean vector illustration, sketch art, monochrome' },
-  pencil: { ko: '연필 소묘', en: 'Pencil sketch, hand-drawn illustration, cross-hatching, graphite texture, charcoal shading' }
+  cinematic: { ko: '영화 스틸컷', en: 'Cinematic movie still, photorealistic, 8k resolution, shot on 35mm lens, highly detailed textures', noun: 'cinematic photograph' },
+  highend_ad: { ko: '하이엔드 광고 스타일', en: 'High-end luxury commercial advertisement style, sleek product lighting, clean minimalist composition, elegant studio lighting, ultra-sharp focus, premium color grading, sophisticated aesthetic', noun: 'high-end luxury commercial photograph' },
+  anime: { ko: '애니메이션', en: 'Anime style, highly detailed digital illustration, vibrant colors, studio Ghibli aesthetic, clean lines', noun: 'anime studio illustration' },
+  webtoon: { ko: '웹툰', en: 'Korean webtoon illustration style, line art, cell shaded, high quality manhwa cover art', noun: 'webtoon illustration' },
+  disney3d: { ko: '디즈니 3D', en: '3D animated movie render, Pixar style, cute character design, soft lighting, octane render', noun: '3D Pixar-style animated render' },
+  concept: { ko: '컨셉 아트', en: 'Concept art, digital painting, dramatic composition, atmospheric perspective, artstation trending', noun: 'fantasy digital painting' },
+  lineart: { ko: '라인 드로잉', en: 'Minimalist line drawing, clean vector illustration, sketch art, monochrome', noun: 'minimalist line art drawing' },
+  pencil: { ko: '연필 소묘', en: 'Pencil sketch, hand-drawn illustration, cross-hatching, graphite texture, charcoal shading', noun: 'pencil sketch drawing' }
 };
 
 export const SHOTS = {
@@ -89,7 +90,7 @@ export default function PromptGenerator({
     const mj = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn} --ar ${aspectRatio} --v 6.0`;
 
     // NanoBanana: Descriptive paragraphs
-    const nb = `A detailed ${stylePreset === 'cinematic' ? 'cinematic photograph' : STYLES[stylePreset]?.ko + ' illustration'} depicting: ${storyText}. The scene features a ${shotEn} with ${cameraEn}. The general mood is ${toneEn}, rendered in a ${colorEn}.`;
+    const nb = `A detailed ${STYLES[stylePreset]?.noun || 'illustration'} depicting: ${storyText}. The scene features a ${shotEn} with ${cameraEn}. The general mood is ${toneEn}, rendered in a ${colorEn}.`;
 
     return { mj, nb };
   };
