@@ -107,6 +107,7 @@ export default function StoryboardFrame({
   const [aiConcepts, setAiConcepts] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
   const fileInputRef = useRef(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleUpdate = (updatedFields) => {
     onUpdate(frame.id, updatedFields);
@@ -238,32 +239,59 @@ Return a JSON array of exactly 3 objects with these exact keys. Do not write mar
           <span className="card-title">Scene Cut #{index + 1}</span>
         </div>
         <div className="card-actions">
-          <button 
-            type="button" 
-            className="btn btn-secondary btn-sm"
-            onClick={() => onMove(index, index - 1)}
-            disabled={index === 0}
-            title="왼쪽으로 이동"
-          >
-            <ChevronLeft size={14} />
-          </button>
-          <button 
-            type="button" 
-            className="btn btn-secondary btn-sm"
-            onClick={() => onMove(index, index + 1)}
-            disabled={index === totalFrames - 1}
-            title="오른쪽으로 이동"
-          >
-            <ChevronRight size={14} />
-          </button>
-          <button 
-            type="button" 
-            className="btn btn-danger-light btn-sm"
-            onClick={() => onDelete(frame.id)}
-            title="삭제"
-          >
-            <Trash2 size={14} />
-          </button>
+          {showDeleteConfirm ? (
+            <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--danger-color)', fontWeight: 600, marginRight: '0.25rem' }}>정말 삭제?</span>
+              <button
+                type="button"
+                className="btn btn-danger-light btn-sm"
+                onClick={() => {
+                  onDelete(frame.id);
+                  setShowDeleteConfirm(false);
+                }}
+                style={{ padding: '0.125rem 0.375rem', fontSize: '0.7rem', fontWeight: 600 }}
+              >
+                예
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowDeleteConfirm(false)}
+                style={{ padding: '0.125rem 0.375rem', fontSize: '0.7rem' }}
+              >
+                아니오
+              </button>
+            </div>
+          ) : (
+            <>
+              <button 
+                type="button" 
+                className="btn btn-secondary btn-sm"
+                onClick={() => onMove(index, index - 1)}
+                disabled={index === 0}
+                title="왼쪽으로 이동"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-secondary btn-sm"
+                onClick={() => onMove(index, index + 1)}
+                disabled={index === totalFrames - 1}
+                title="오른쪽으로 이동"
+              >
+                <ChevronRight size={14} />
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-danger-light btn-sm"
+                onClick={() => setShowDeleteConfirm(true)}
+                title="삭제"
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 

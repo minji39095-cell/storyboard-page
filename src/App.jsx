@@ -189,10 +189,8 @@ export default function App() {
   };
 
   const handleDeleteFrame = (id) => {
-    if (window.confirm('정말로 이 씬 컷을 삭제하시겠습니까?')) {
-      setFrames(frames.filter((f) => f.id !== id));
-      triggerToast('씬 컷이 삭제되었습니다.');
-    }
+    setFrames(frames.filter((f) => f.id !== id));
+    triggerToast('씬 컷이 삭제되었습니다.');
   };
 
   const handleMoveFrame = (fromIndex, toIndex) => {
