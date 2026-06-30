@@ -65,6 +65,7 @@ export default function PromptGenerator({
   // Destructure frame data
   const { 
     story = '', 
+    storyEn = '',
     stylePreset = 'cinematic', 
     shotType = 'cu', 
     cameraMove = 'static', 
@@ -76,6 +77,109 @@ export default function PromptGenerator({
     customCfPrompt = ''
   } = frame;
 
+  // --- Real-time Auto Translation & AI Prompt Generation ---
+  useEffect(() => {
+    // 1. Clear translation fields if story is empty
+    if (!story || !story.trim()) {
+      if (storyEn) {
+        onChange({ 
+          storyEn: '', 
+          customMjPrompt: '', 
+          customNbPrompt: '', 
+          customCfPrompt: '' 
+        });
+      }
+      return;
+    }
+
+    // 2. Check if the input contains Korean characters
+    const hasKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(story);
+    if (!hasKorean) {
+      if (storyEn !== story) {
+        onChange({ storyEn: story });
+      }
+      return;
+    }
+
+    // 3. Debounce: Wait 1.5 seconds after typing stops
+    const delayDebounceFn = setTimeout(async () => {
+      setLoading(true);
+      setApiError('');
+      
+      try {
+        if (geminiApiKey) {
+          // A. Premium Translate & AI Expand via Gemini API
+          const promptText = `Translate this storyboard scene story (written in Korean) into English and expand it into high-quality image generation prompts.
+Story in Korean: "${story}"
+Selected Style: "${STYLES[stylePreset]?.ko} (${STYLES[stylePreset]?.en})"
+Shot Type: "${SHOTS[shotType]?.ko} (${SHOTS[shotType]?.en})"
+Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
+Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
+Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
+
+Provide a JSON object containing exactly four fields:
+1. "storyEn": The simple, direct translation of the Korean story into English.
+2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, cinematic tags, ending with parameters like --ar ${aspectRatio} --v 6.0).
+3. "nanobanana": A prompt optimized for NanoBanana / Google Gemini Imagen 3 (a cohesive, detailed, descriptive English paragraph describing the scene layout, lighting, color, and characters).
+4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (focusing on descriptive tags, style triggers, high-quality modifiers like masterpiece, no parameters).
+
+Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
+
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: promptText }] }],
+                generationConfig: {
+                  responseMimeType: "application/json"
+                }
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            const textResponse = data.candidates[0].content.parts[0].text;
+            const parsed = JSON.parse(textResponse);
+            if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
+              onChange({
+                storyEn: parsed.storyEn,
+                customMjPrompt: parsed.midjourney,
+                customNbPrompt: parsed.nanobanana,
+                customCfPrompt: parsed.comfyui
+              });
+              showToast('AI 실시간 자동 번역 완료');
+              return;
+            }
+          }
+        }
+        
+        // B. Fallback Free Translate via MyMemory API (if no key, or if Gemini fails)
+        const res = await fetch(
+          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(story)}&langpair=ko|en`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const translatedText = data.responseData.translatedText;
+          if (translatedText) {
+            onChange({ storyEn: translatedText });
+            showToast('실시간 자동 영어 번역 완료');
+          }
+        }
+      } catch (err) {
+        console.error('자동 번역 중 오류:', err);
+      } finally {
+        setLoading(false);
+      }
+    }, 1500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [story, geminiApiKey, stylePreset, shotType, cameraMove, tone, colorPalette, aspectRatio]);
+
   // Local compiler when AI is not used
   const compileLocalPrompts = () => {
     const styleEn = STYLES[stylePreset]?.en || '';
@@ -84,8 +188,8 @@ export default function PromptGenerator({
     const toneEn = TONES[tone]?.en || '';
     const colorEn = COLORS[colorPalette]?.en || '';
 
-    // Convert story to a fallback descriptor if Korean
-    const storyText = story.trim() || 'A simple scene';
+    // Use English translated story if available, fallback to Korean story
+    const storyText = storyEn || story.trim() || 'A simple scene';
 
     // Midjourney: comma separated keywords
     const mj = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn} --ar ${aspectRatio} --v 6.0`;
@@ -123,18 +227,19 @@ export default function PromptGenerator({
     setApiError('');
 
     try {
-      const promptText = `Translate and expand this storyboard scene story into a highly detailed English image generation prompt.
-Story: "${story}"
+      const promptText = `Translate this storyboard scene story (written in Korean) into English and expand it into high-quality image generation prompts.
+Story in Korean: "${story}"
 Style: "${STYLES[stylePreset]?.ko} (${STYLES[stylePreset]?.en})"
 Shot Type: "${SHOTS[shotType]?.ko} (${SHOTS[shotType]?.en})"
 Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
-Provide a JSON object containing exactly three fields:
-1. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, cinematic tags, ending with parameters like --ar ${aspectRatio} --v 6.0).
-2. "nanobanana": A prompt optimized for NanoBanana / Google Gemini Imagen 3 (a cohesive, detailed, descriptive English paragraph describing the scene layout, lighting, color, and characters).
-3. "comfyui": A prompt optimized for ComfyUI z-image-turbo (focusing on descriptive tags, style triggers, high-quality modifiers like masterpiece, no parameters).
+Provide a JSON object containing exactly four fields:
+1. "storyEn": The simple, direct translation of the Korean story into English.
+2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, cinematic tags, ending with parameters like --ar ${aspectRatio} --v 6.0).
+3. "nanobanana": A prompt optimized for NanoBanana / Google Gemini Imagen 3 (a cohesive, detailed, descriptive English paragraph describing the scene layout, lighting, color, and characters).
+4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (focusing on descriptive tags, style triggers, high-quality modifiers like masterpiece, no parameters).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
@@ -162,8 +267,9 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       const textResponse = data.candidates[0].content.parts[0].text;
       const parsed = JSON.parse(textResponse);
 
-      if (parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
+      if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
         onChange({
+          storyEn: parsed.storyEn,
           customMjPrompt: parsed.midjourney,
           customNbPrompt: parsed.nanobanana,
           customCfPrompt: parsed.comfyui
