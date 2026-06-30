@@ -72,7 +72,8 @@ export default function PromptGenerator({
     colorPalette = 'amber', 
     aspectRatio = '16:9',
     customMjPrompt = '',
-    customNbPrompt = ''
+    customNbPrompt = '',
+    customCfPrompt = ''
   } = frame;
 
   // Local compiler when AI is not used
@@ -92,12 +93,16 @@ export default function PromptGenerator({
     // NanoBanana: Descriptive paragraphs
     const nb = `A detailed ${STYLES[stylePreset]?.noun || 'illustration'} depicting: ${storyText}. The scene features a ${shotEn} with ${cameraEn}. The general mood is ${toneEn}, rendered in a ${colorEn}.`;
 
-    return { mj, nb };
+    // ComfyUI z-image-turbo: Comma separated tags with quality suffixes, no parameters
+    const cf = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}, highly detailed, masterpiece, sharp focus, 8k`;
+
+    return { mj, nb, cf };
   };
 
   const localPrompts = compileLocalPrompts();
   const activeMj = customMjPrompt || localPrompts.mj;
   const activeNb = customNbPrompt || localPrompts.nb;
+  const activeCf = customCfPrompt || localPrompts.cf;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -126,9 +131,10 @@ Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
-Provide a JSON object containing exactly two fields:
+Provide a JSON object containing exactly three fields:
 1. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, cinematic tags, ending with parameters like --ar ${aspectRatio} --v 6.0).
 2. "nanobanana": A prompt optimized for NanoBanana / Google Gemini Imagen 3 (a cohesive, detailed, descriptive English paragraph describing the scene layout, lighting, color, and characters).
+3. "comfyui": A prompt optimized for ComfyUI z-image-turbo (focusing on descriptive tags, style triggers, high-quality modifiers like masterpiece, no parameters).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
@@ -156,10 +162,11 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       const textResponse = data.candidates[0].content.parts[0].text;
       const parsed = JSON.parse(textResponse);
 
-      if (parsed.midjourney && parsed.nanobanana) {
+      if (parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
         onChange({
           customMjPrompt: parsed.midjourney,
-          customNbPrompt: parsed.nanobanana
+          customNbPrompt: parsed.nanobanana,
+          customCfPrompt: parsed.comfyui
         });
         showToast('AI 프롬프트 생성 완료!');
       } else {
@@ -176,7 +183,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
   const handleResetCustomPrompts = () => {
     onChange({
       customMjPrompt: '',
-      customNbPrompt: ''
+      customNbPrompt: '',
+      customCfPrompt: ''
     });
   };
 
@@ -236,7 +244,24 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         <div className="prompt-text">{activeNb}</div>
       </div>
 
-      {(customMjPrompt || customNbPrompt) && (
+      {/* ComfyUI Box */}
+      <div className="prompt-box">
+        <div className="prompt-box-header">
+          <span className="prompt-badge badge-cf">ComfyUI z-image-turbo</span>
+          <button 
+            type="button" 
+            className="btn btn-text btn-sm" 
+            style={{ padding: '2px' }}
+            onClick={() => copyToClipboard(activeCf, 'ComfyUI')}
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+        <div className="prompt-text">{activeCf}</div>
+      </div>
+
+      {(customMjPrompt || customNbPrompt || customCfPrompt) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"

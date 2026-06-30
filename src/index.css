@@ -459,6 +459,11 @@ textarea {
   color: #854d0e;
 }
 
+.badge-cf {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+}
+
 .prompt-text {
   font-size: 0.8rem;
   color: var(--text-primary);
