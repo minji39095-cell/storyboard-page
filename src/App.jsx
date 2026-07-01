@@ -54,6 +54,41 @@ const parseBase64Image = (dataUrl) => {
   };
 };
 
+const compressImage = (dataUrl, maxWidth = 800, maxHeight = 800) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = dataUrl;
+    img.onload = () => {
+      if (img.width <= maxWidth && img.height <= maxHeight) {
+        resolve(dataUrl);
+        return;
+      }
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => {
+      resolve(dataUrl);
+    };
+  });
+};
+
 export default function App() {
   const [projectTitle, setProjectTitle] = useState('무제 스토리보드');
   const [frames, setFrames] = useState([
@@ -126,7 +161,11 @@ export default function App() {
 
   // Save to localStorage when state changes
   useEffect(() => {
-    localStorage.setItem('storyboard_frames', JSON.stringify(frames));
+    try {
+      localStorage.setItem('storyboard_frames', JSON.stringify(frames));
+    } catch (e) {
+      console.warn('로컬 스토리지 한도 초과로 데이터를 저장하지 못했습니다.', e);
+    }
   }, [frames]);
 
   useEffect(() => {
@@ -258,8 +297,9 @@ export default function App() {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
-      setGeneratorImage(event.target.result);
+    reader.onload = async (event) => {
+      const compressed = await compressImage(event.target.result);
+      setGeneratorImage(compressed);
     };
     reader.readAsDataURL(file);
   };
