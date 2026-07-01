@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Copy, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Copy, Sparkles, AlertCircle, Languages } from 'lucide-react';
 
 export const STYLES = {
   cinematic: { ko: '영화 스틸컷', en: 'Cinematic movie still, photorealistic, 8k resolution, shot on 35mm lens, highly detailed textures', noun: 'cinematic photograph' },
@@ -80,114 +80,6 @@ export default function PromptGenerator({
     isCfEdited = false
   } = frame;
 
-  // --- Real-time Auto Translation & AI Prompt Generation ---
-  useEffect(() => {
-    // 1. Clear translation fields if story is empty
-    if (!story || !story.trim()) {
-      if (storyEn) {
-        onChange({ 
-          storyEn: '', 
-          customMjPrompt: '', 
-          customNbPrompt: '', 
-          customCfPrompt: '',
-          isMjEdited: false,
-          isNbEdited: false,
-          isCfEdited: false
-        });
-      }
-      return;
-    }
-
-    // 2. Check if the input contains Korean characters
-    const hasKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(story);
-    if (!hasKorean) {
-      if (storyEn !== story) {
-        onChange({ storyEn: story });
-      }
-      return;
-    }
-
-    // 3. Debounce: Wait 1.5 seconds after typing stops
-    const delayDebounceFn = setTimeout(async () => {
-      setLoading(true);
-      setApiError('');
-      
-      try {
-        if (geminiApiKey) {
-          // A. Premium Translate & AI Expand via Gemini API
-          const promptText = `Translate this storyboard scene story (written in Korean) into English and expand it into high-quality image generation prompts.
-Story in Korean: "${story}"
-Selected Style: "${STYLES[stylePreset]?.ko} (${STYLES[stylePreset]?.en})"
-Shot Type: "${SHOTS[shotType]?.ko} (${SHOTS[shotType]?.en})"
-Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
-Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
-Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
-
-Provide a JSON object containing exactly four fields:
-1. "storyEn": The simple, direct translation of the Korean story into English.
-2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, cinematic tags, ending with parameters like --ar ${aspectRatio} --v 6.0).
-3. "nanobanana": A prompt optimized for NanoBanana / Google Gemini Imagen 3 (a cohesive, detailed, descriptive English paragraph describing the scene layout, lighting, color, and characters).
-4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (focusing on descriptive tags, style triggers, high-quality modifiers like masterpiece, no parameters).
-
-Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
-
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: promptText }] }],
-                generationConfig: {
-                  responseMimeType: "application/json"
-                }
-              }),
-            }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            const textResponse = data.candidates[0].content.parts[0].text;
-            const parsed = JSON.parse(textResponse);
-            if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
-              const updateData = { storyEn: parsed.storyEn };
-              
-              // CRITICAL: Only overwrite prompt fields if they HAVE NOT been manually edited by the user
-              if (!isMjEdited) updateData.customMjPrompt = parsed.midjourney;
-              if (!isNbEdited) updateData.customNbPrompt = parsed.nanobanana;
-              if (!isCfEdited) updateData.customCfPrompt = parsed.comfyui;
-
-              onChange(updateData);
-              showToast('AI 실시간 자동 번역 완료');
-              return;
-            }
-          }
-        }
-        
-        // B. Fallback Free Translate via MyMemory API (if no key, or if Gemini fails)
-        const res = await fetch(
-          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(story)}&langpair=ko|en`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const translatedText = data.responseData.translatedText;
-          if (translatedText) {
-            onChange({ storyEn: translatedText });
-            showToast('실시간 자동 영어 번역 완료');
-          }
-        }
-      } catch (err) {
-        console.error('자동 번역 중 오류:', err);
-      } finally {
-        setLoading(false);
-      }
-    }, 1500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [story, geminiApiKey, stylePreset, shotType, cameraMove, tone, colorPalette, aspectRatio]);
-
   // Local compiler when AI is not used
   const compileLocalPrompts = () => {
     const styleEn = STYLES[stylePreset]?.en || '';
@@ -221,13 +113,9 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
     showToast(`${type} 프롬프트가 복사되었습니다.`);
   };
 
-  const handleAiTranslate = async () => {
-    if (!geminiApiKey) {
-      setApiError('상단 설정에서 Gemini API Key를 입력해주세요.');
-      return;
-    }
-    if (!story.trim()) {
-      setApiError('스토리(지문)를 입력한 뒤에 AI 프롬프트 생성을 진행해 주세요.');
+  const handleTranslateAndGenerate = async () => {
+    if (!story || !story.trim()) {
+      setApiError('번역할 스토리 내용을 먼저 입력해주세요.');
       return;
     }
 
@@ -235,7 +123,9 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
     setApiError('');
 
     try {
-      const promptText = `Translate this storyboard scene story (written in Korean) into English and expand it into high-quality image generation prompts.
+      if (geminiApiKey) {
+        // A. Premium Translate & AI Expand via Gemini API (Manual trigger)
+        const promptText = `Translate this storyboard scene story (written in Korean) into English and expand it into high-quality image generation prompts.
 Story in Korean: "${story}"
 Style: "${STYLES[stylePreset]?.ko} (${STYLES[stylePreset]?.en})"
 Shot Type: "${SHOTS[shotType]?.ko} (${SHOTS[shotType]?.en})"
@@ -251,48 +141,69 @@ Provide a JSON object containing exactly four fields:
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }],
-            generationConfig: {
-              responseMimeType: "application/json"
-            }
-          }),
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: promptText }] }],
+              generationConfig: {
+                responseMimeType: "application/json"
+              }
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('API 호출에 실패했습니다. 키가 올바른지 확인해주세요.');
         }
-      );
 
-      if (!response.ok) {
-        throw new Error('API 호출에 실패했습니다. 키가 올바른지 확인해주세요.');
-      }
+        const data = await response.json();
+        const textResponse = data.candidates[0].content.parts[0].text;
+        const parsed = JSON.parse(textResponse);
 
-      const data = await response.json();
-      const textResponse = data.candidates[0].content.parts[0].text;
-      const parsed = JSON.parse(textResponse);
-
-      if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
-        // Overwrite manually edited prompts upon explicit manual click
-        onChange({
-          storyEn: parsed.storyEn,
-          customMjPrompt: parsed.midjourney,
-          customNbPrompt: parsed.nanobanana,
-          customCfPrompt: parsed.comfyui,
-          isMjEdited: false,
-          isNbEdited: false,
-          isCfEdited: false
-        });
-        showToast('AI 프롬프트 생성 완료!');
+        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
+          onChange({
+            storyEn: parsed.storyEn,
+            customMjPrompt: parsed.midjourney,
+            customNbPrompt: parsed.nanobanana,
+            customCfPrompt: parsed.comfyui,
+            isMjEdited: false,
+            isNbEdited: false,
+            isCfEdited: false
+          });
+          showToast('AI 번역 및 고도화 완료');
+        } else {
+          throw new Error('데이터 파싱 오류');
+        }
       } else {
-        throw new Error('데이터 파싱 오류');
+        // B. Fallback Free Translate via MyMemory API (Manual trigger)
+        const res = await fetch(
+          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(story)}&langpair=ko|en`
+        );
+        if (!res.ok) {
+          throw new Error('번역 API 서버 통신 실패');
+        }
+        const data = await res.json();
+        const translatedText = data.responseData.translatedText;
+        if (translatedText) {
+          onChange({ 
+            storyEn: translatedText,
+            isMjEdited: false,
+            isNbEdited: false,
+            isCfEdited: false 
+          });
+          showToast('영문 번역 완료 (MyMemory)');
+        } else {
+          throw new Error('번역 데이터 해석 실패');
+        }
       }
     } catch (err) {
       console.error(err);
-      setApiError(err.message || 'AI 생성 중 오류가 발생했습니다.');
+      setApiError(err.message || '번역 진행 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -314,13 +225,13 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       <div className="form-row" style={{ gap: '0.5rem' }}>
         <button
           type="button"
-          className="btn btn-secondary btn-sm"
-          style={{ gridColumn: 'span 2', display: 'flex', gap: '0.25rem', justifyContent: 'center' }}
-          onClick={handleAiTranslate}
+          className="btn btn-primary btn-sm"
+          style={{ gridColumn: 'span 2', display: 'flex', gap: '0.25rem', justifyContent: 'center', fontWeight: 600 }}
+          onClick={handleTranslateAndGenerate}
           disabled={loading}
         >
-          <Sparkles size={12} className={loading ? 'animate-spin' : ''} />
-          {loading ? 'AI 프롬프트 생성 중...' : 'Gemini AI로 프롬프트 고도화'}
+          <Languages size={12} className={loading ? 'animate-spin' : ''} />
+          {loading ? '번역 진행 중...' : geminiApiKey ? 'Gemini AI로 번역 & 프롬프트 고도화' : '한글 지문 영문 번역 (MyMemory)'}
         </button>
       </div>
 
