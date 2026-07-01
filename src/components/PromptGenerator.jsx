@@ -74,7 +74,10 @@ export default function PromptGenerator({
     aspectRatio = '16:9',
     customMjPrompt = '',
     customNbPrompt = '',
-    customCfPrompt = ''
+    customCfPrompt = '',
+    isMjEdited = false,
+    isNbEdited = false,
+    isCfEdited = false
   } = frame;
 
   // --- Real-time Auto Translation & AI Prompt Generation ---
@@ -86,7 +89,10 @@ export default function PromptGenerator({
           storyEn: '', 
           customMjPrompt: '', 
           customNbPrompt: '', 
-          customCfPrompt: '' 
+          customCfPrompt: '',
+          isMjEdited: false,
+          isNbEdited: false,
+          isCfEdited: false
         });
       }
       return;
@@ -146,12 +152,14 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             const textResponse = data.candidates[0].content.parts[0].text;
             const parsed = JSON.parse(textResponse);
             if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
-              onChange({
-                storyEn: parsed.storyEn,
-                customMjPrompt: parsed.midjourney,
-                customNbPrompt: parsed.nanobanana,
-                customCfPrompt: parsed.comfyui
-              });
+              const updateData = { storyEn: parsed.storyEn };
+              
+              // CRITICAL: Only overwrite prompt fields if they HAVE NOT been manually edited by the user
+              if (!isMjEdited) updateData.customMjPrompt = parsed.midjourney;
+              if (!isNbEdited) updateData.customNbPrompt = parsed.nanobanana;
+              if (!isCfEdited) updateData.customCfPrompt = parsed.comfyui;
+
+              onChange(updateData);
               showToast('AI 실시간 자동 번역 완료');
               return;
             }
@@ -204,9 +212,9 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
   };
 
   const localPrompts = compileLocalPrompts();
-  const activeMj = customMjPrompt || localPrompts.mj;
-  const activeNb = customNbPrompt || localPrompts.nb;
-  const activeCf = customCfPrompt || localPrompts.cf;
+  const activeMj = customMjPrompt !== '' ? customMjPrompt : localPrompts.mj;
+  const activeNb = customNbPrompt !== '' ? customNbPrompt : localPrompts.nb;
+  const activeCf = customCfPrompt !== '' ? customCfPrompt : localPrompts.cf;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -268,11 +276,15 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       const parsed = JSON.parse(textResponse);
 
       if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
+        // Overwrite manually edited prompts upon explicit manual click
         onChange({
           storyEn: parsed.storyEn,
           customMjPrompt: parsed.midjourney,
           customNbPrompt: parsed.nanobanana,
-          customCfPrompt: parsed.comfyui
+          customCfPrompt: parsed.comfyui,
+          isMjEdited: false,
+          isNbEdited: false,
+          isCfEdited: false
         });
         showToast('AI 프롬프트 생성 완료!');
       } else {
@@ -290,7 +302,10 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
     onChange({
       customMjPrompt: '',
       customNbPrompt: '',
-      customCfPrompt: ''
+      customCfPrompt: '',
+      isMjEdited: false,
+      isNbEdited: false,
+      isCfEdited: false
     });
   };
 
@@ -330,7 +345,23 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             <Copy size={12} />
           </button>
         </div>
-        <div className="prompt-text">{activeMj}</div>
+        <textarea
+          className="prompt-text"
+          value={activeMj}
+          onChange={(e) => onChange({ customMjPrompt: e.target.value, isMjEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '60px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="Midjourney 프롬프트 편집..."
+        />
       </div>
 
       {/* NanoBanana Box */}
@@ -347,7 +378,23 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             <Copy size={12} />
           </button>
         </div>
-        <div className="prompt-text">{activeNb}</div>
+        <textarea
+          className="prompt-text"
+          value={activeNb}
+          onChange={(e) => onChange({ customNbPrompt: e.target.value, isNbEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '60px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="NanoBanana 프롬프트 편집..."
+        />
       </div>
 
       {/* ComfyUI Box */}
@@ -364,10 +411,26 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             <Copy size={12} />
           </button>
         </div>
-        <div className="prompt-text">{activeCf}</div>
+        <textarea
+          className="prompt-text"
+          value={activeCf}
+          onChange={(e) => onChange({ customCfPrompt: e.target.value, isCfEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '60px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="ComfyUI 프롬프트 편집..."
+        />
       </div>
 
-      {(customMjPrompt || customNbPrompt || customCfPrompt) && (
+      {(customMjPrompt || customNbPrompt || customCfPrompt || isMjEdited || isNbEdited || isCfEdited) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
