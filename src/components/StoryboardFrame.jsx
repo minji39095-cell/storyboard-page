@@ -141,6 +141,7 @@ export default function StoryboardFrame({
   const [activeTab, setActiveTab] = useState(frame.image ? 'ai' : 'cosmetics');
   const [aiConcepts, setAiConcepts] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiStoryLoading, setAiStoryLoading] = useState(false);
   const fileInputRef = useRef(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -264,6 +265,81 @@ Return a JSON array of exactly 3 objects with these exact keys. Do not write mar
       alert(err.message || '시안 생성 중 오류가 발생했습니다.');
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleAiCompleteStory = async () => {
+    if (!geminiApiKey) {
+      alert('상단 설정에서 Gemini API Key를 입력하셔야 AI 연출 완성 기능을 사용할 수 있습니다.');
+      return;
+    }
+    
+    setAiStoryLoading(true);
+    
+    try {
+      const parsedImage = frame.image ? parseBase64Image(frame.image) : null;
+      let promptText = `Generate a detailed, creative commercial storyboard scene description / script in Korean (2-3 sentences max) based on the user's initial draft.
+Draft idea: "${frame.story.trim() || 'A premium commercial scene'}"
+Style preset: "${STYLES[frame.stylePreset]?.ko || 'cinematic'}"
+Shot type: "${SHOTS[frame.shotType]?.ko || 'close-up'}"
+
+The generated text must be written in a professional ad storyboard style (KOREAN).
+Provide ONLY the final script text. Do not include any explanations, code block formatting, or markdown wraps.`;
+
+      let contentsPayload = [];
+      if (parsedImage) {
+        contentsPayload = [
+          {
+            parts: [
+              { text: promptText },
+              {
+                inlineData: {
+                  mimeType: parsedImage.mimeType,
+                  data: parsedImage.data
+                }
+              }
+            ]
+          }
+        ];
+      } else {
+        contentsPayload = [
+          {
+            parts: [{ text: promptText }]
+          }
+        ];
+      }
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: contentsPayload
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('API 호출에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      const generatedText = data.candidates[0].content.parts[0].text.trim();
+      
+      if (generatedText) {
+        handleUpdate({ story: generatedText });
+        showToast('AI 연출 지문 작성이 완료되었습니다.');
+      } else {
+        throw new Error('생성된 텍스트가 비어 있습니다.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || '연출 작성 중 오류가 발생했습니다.');
+    } finally {
+      setAiStoryLoading(false);
     }
   };
 
@@ -396,14 +472,27 @@ Return a JSON array of exactly 3 objects with these exact keys. Do not write mar
         <div className="form-group">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
             <label>스토리 / 연출 내용</label>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              style={{ padding: '0.125rem 0.5rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.25rem', borderColor: 'var(--text-muted)' }}
-              onClick={() => setIsConceptModalOpen(true)}
-            >
-              <Sparkles size={10} /> 시안 추천 가이드
-            </button>
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.125rem 0.5rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.25rem', borderColor: 'var(--text-muted)' }}
+                onClick={handleAiCompleteStory}
+                disabled={aiStoryLoading}
+                title="입력한 키워드나 연출 아이디어를 풍부한 지문으로 완성"
+              >
+                <Sparkles size={10} className={aiStoryLoading ? 'animate-spin' : ''} />
+                {aiStoryLoading ? 'AI 작성 중...' : 'AI 연출 완성'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.125rem 0.5rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.25rem', borderColor: 'var(--text-muted)' }}
+                onClick={() => setIsConceptModalOpen(true)}
+              >
+                <Sparkles size={10} /> 시안 추천 가이드
+              </button>
+            </div>
           </div>
           <textarea
             value={frame.story}
