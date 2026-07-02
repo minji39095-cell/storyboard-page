@@ -75,9 +75,13 @@ export default function PromptGenerator({
     customMjPrompt = '',
     customNbPrompt = '',
     customCfPrompt = '',
+    customGkPrompt = '',
+    customSdPrompt = '',
     isMjEdited = false,
     isNbEdited = false,
-    isCfEdited = false
+    isCfEdited = false,
+    isGkEdited = false,
+    isSdEdited = false
   } = frame;
 
   // Local compiler when AI is not used
@@ -100,13 +104,21 @@ export default function PromptGenerator({
     // ComfyUI z-image-turbo: Comma separated tags with quality suffixes, no parameters
     const cf = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}, highly detailed, masterpiece, sharp focus, 8k`;
 
-    return { mj, nb, cf };
+    // ComfyUI Grok: raw photo + natural structure
+    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}, ${cameraEn}. Atmosphere: ${toneEn}. Colors: ${colorEn}. Realism, high resolution.`;
+
+    // Seedance: cinematic grading + commercial video tags
+    const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera motion: ${cameraEn}, tone: ${toneEn}, color grade: ${colorEn}, high quality cinematic render, 8k resolution`;
+
+    return { mj, nb, cf, gk, sd };
   };
 
   const localPrompts = compileLocalPrompts();
   const activeMj = customMjPrompt !== '' ? customMjPrompt : localPrompts.mj;
   const activeNb = customNbPrompt !== '' ? customNbPrompt : localPrompts.nb;
   const activeCf = customCfPrompt !== '' ? customCfPrompt : localPrompts.cf;
+  const activeGk = customGkPrompt !== '' ? customGkPrompt : localPrompts.gk;
+  const activeSd = customSdPrompt !== '' ? customSdPrompt : localPrompts.sd;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -133,11 +145,13 @@ Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
-Provide a JSON object containing exactly four fields:
+Provide a JSON object containing exactly six fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
 2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, cinematic tags, ending with parameters like --ar ${aspectRatio} --v 6.0).
 3. "nanobanana": A prompt optimized for NanoBanana / Google Gemini Imagen 3 (a cohesive, detailed, descriptive English paragraph describing the scene layout, lighting, color, and characters).
 4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (focusing on descriptive tags, style triggers, high-quality modifiers like masterpiece, no parameters).
+5. "grok": A prompt optimized for Grok (Flux/Grok style, natural language with punchy descriptive tags).
+6. "seedance": A prompt optimized for Seedance (cinematic commercial format, focusing on motion tags and high-end video grading).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
@@ -165,16 +179,17 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         const textResponse = data.candidates[0].content.parts[0].text;
         const parsed = JSON.parse(textResponse);
 
-        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui) {
-          onChange({
-            storyEn: parsed.storyEn,
-            customMjPrompt: parsed.midjourney,
-            customNbPrompt: parsed.nanobanana,
-            customCfPrompt: parsed.comfyui,
-            isMjEdited: false,
-            isNbEdited: false,
-            isCfEdited: false
-          });
+        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui && parsed.grok && parsed.seedance) {
+          const updateData = { storyEn: parsed.storyEn };
+          
+          // Only overwrite prompt fields if they HAVE NOT been manually edited by the user
+          if (!isMjEdited) updateData.customMjPrompt = parsed.midjourney;
+          if (!isNbEdited) updateData.customNbPrompt = parsed.nanobanana;
+          if (!isCfEdited) updateData.customCfPrompt = parsed.comfyui;
+          if (!isGkEdited) updateData.customGkPrompt = parsed.grok;
+          if (!isSdEdited) updateData.customSdPrompt = parsed.seedance;
+
+          onChange(updateData);
           showToast('AI 번역 및 고도화 완료');
         } else {
           throw new Error('데이터 파싱 오류');
@@ -194,7 +209,9 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             storyEn: translatedText,
             isMjEdited: false,
             isNbEdited: false,
-            isCfEdited: false 
+            isCfEdited: false,
+            isGkEdited: false,
+            isSdEdited: false
           });
           showToast('영문 번역 완료 (MyMemory)');
         } else {
@@ -214,9 +231,13 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       customMjPrompt: '',
       customNbPrompt: '',
       customCfPrompt: '',
+      customGkPrompt: '',
+      customSdPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
-      isCfEdited: false
+      isCfEdited: false,
+      isGkEdited: false,
+      isSdEdited: false
     });
   };
 
@@ -341,7 +362,73 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         />
       </div>
 
-      {(customMjPrompt || customNbPrompt || customCfPrompt || isMjEdited || isNbEdited || isCfEdited) && (
+      {/* ComfyUI Grok Box */}
+      <div className="prompt-box">
+        <div className="prompt-box-header">
+          <span className="prompt-badge" style={{ backgroundColor: '#1e293b', color: '#f8fafc', fontSize: '0.65rem' }}>ComfyUI Grok</span>
+          <button 
+            type="button" 
+            className="btn btn-text btn-sm" 
+            style={{ padding: '2px' }}
+            onClick={() => copyToClipboard(activeGk, 'ComfyUI Grok')}
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+        <textarea
+          className="prompt-text"
+          value={activeGk}
+          onChange={(e) => onChange({ customGkPrompt: e.target.value, isGkEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '60px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="ComfyUI Grok 프롬프트 편집..."
+        />
+      </div>
+
+      {/* Seedance Box */}
+      <div className="prompt-box">
+        <div className="prompt-box-header">
+          <span className="prompt-badge" style={{ backgroundColor: '#4f46e5', color: '#ffffff', fontSize: '0.65rem' }}>Seedance</span>
+          <button 
+            type="button" 
+            className="btn btn-text btn-sm" 
+            style={{ padding: '2px' }}
+            onClick={() => copyToClipboard(activeSd, 'Seedance')}
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+        <textarea
+          className="prompt-text"
+          value={activeSd}
+          onChange={(e) => onChange({ customSdPrompt: e.target.value, isSdEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '60px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="Seedance 프롬프트 편집..."
+        />
+      </div>
+
+      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
