@@ -599,7 +599,7 @@ Return the result as a JSON array of exactly ${generatorNumCuts} objects. Do not
       <main className="main-content">
         <div className="main-workspace">
           {/* Left Sidebar: Human Model Prompt Generator */}
-          <ModelPromptGenerator showToast={triggerToast} />
+          <ModelPromptGenerator geminiApiKey={geminiApiKey} showToast={triggerToast} />
 
           {/* Right Area: Storyboard Workspace */}
           <div className="board-area">

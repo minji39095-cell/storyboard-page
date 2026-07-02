@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Sparkles, AlertTriangle, Eye } from 'lucide-react';
+import { Copy, Sparkles, AlertTriangle, Eye, Languages, RotateCcw } from 'lucide-react';
 
 const AGES = [
   { ko: '20대', en: '20s year old' },
@@ -28,7 +28,7 @@ const COMPOSITIONS = [
 const SKIN_TEXTURES = [
   { ko: '수분광 (촉촉한 피부)', en: 'dewy skin texture, glowing skin' },
   { ko: '매트하고 자연스러움', en: 'matte natural skin texture, dry skin look' },
-  { ko: '땀방울이 맺힌 피부', en: 'sweat-sheened skin texture, glistening skin' },
+  { ko: '땀방울이 맺힌 피부', en: 'skin with fine sweat beads, glistening skin' },
   { ko: '햇볕에 그을린 건강한', en: 'sun-kissed skin texture, healthy warm skin tone' },
   { ko: '모공 질감 극대화', en: 'highly detailed skin pores, raw skin textures' }
 ];
@@ -88,7 +88,7 @@ const CAMERAS = [
   { ko: 'Arri Alexa Mini (시네마틱)', en: 'filmed on Arri Alexa Mini, Master Prime lens' }
 ];
 
-export default function ModelPromptGenerator({ showToast }) {
+export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [age, setAge] = useState('20대');
   const [gender, setGender] = useState('여성');
   const [composition, setComposition] = useState('클로즈업 (얼굴 위주)');
@@ -100,11 +100,26 @@ export default function ModelPromptGenerator({ showToast }) {
   const [light, setLight] = useState('렘브란트 라이트 (명암)');
   const [background, setBackground] = useState('부드럽게 흐려진 실내');
   const [camera, setCamera] = useState('Hasselblad H6D (럭셔리 중형)');
+  
+  // Custom description in Korean
+  const [customModelDesc, setCustomModelDesc] = useState('');
+  const [loading, setLoading] = useState(false);
 
+  // Main assembled prompts
   const [prompts, setPrompts] = useState({ mj: '', nb: '', cf: '' });
 
-  // Generate Prompts in Real-time
-  useEffect(() => {
+  // Custom manually edited prompt fields
+  const [customMjPrompt, setCustomMjPrompt] = useState('');
+  const [customNbPrompt, setCustomNbPrompt] = useState('');
+  const [customCfPrompt, setCustomCfPrompt] = useState('');
+
+  // Dirty edit tracking
+  const [isMjEdited, setIsMjEdited] = useState(false);
+  const [isNbEdited, setIsNbEdited] = useState(false);
+  const [isCfEdited, setIsCfEdited] = useState(false);
+
+  // Fallback compiler
+  const compileLocalPrompts = (customDescEn = '') => {
     const ageEn = AGES.find(a => a.ko === age)?.en || '';
     const genderEn = GENDERS.find(g => g.ko === gender)?.en || '';
     const compEn = COMPOSITIONS.find(c => c.ko === composition)?.en || '';
@@ -117,22 +132,122 @@ export default function ModelPromptGenerator({ showToast }) {
     const bgEn = BACKGROUNDS.find(b => b.ko === background)?.en || '';
     const cameraEn = CAMERAS.find(c => c.ko === camera)?.en || '';
 
-    // Midjourney: structured tag format, clean of negative words
-    const mj = `A raw photo of a ${ageEn} ${genderEn}, ${exprEn}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}, ${cameraEn} --ar 16:9 --v 6.0 --style raw`;
+    const descPart = customDescEn ? `, ${customDescEn}` : '';
+    const descPartNb = customDescEn ? `, featuring ${customDescEn}` : '';
 
-    // NanoBanana: Descriptive natural language format
-    const nb = `A highly detailed, raw realistic photograph. The subject is a ${ageEn} ${genderEn} with a ${exprEn}, featuring ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraEn} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
+    // Midjourney
+    const mj = `A raw photo of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}, ${cameraEn} --ar 16:9 --v 6.0 --style raw`;
 
-    // ComfyUI: Clean tags
-    const cf = `raw photo, ${ageEn} ${genderEn}, ${exprEn}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraEn}, ${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
+    // NanoBanana
+    const nb = `A highly detailed, raw realistic photograph. The subject is a ${ageEn} ${genderEn} with a ${exprEn}${descPartNb}, featuring ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraEn} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
-    setPrompts({ mj, nb, cf });
-  }, [age, gender, composition, skinTexture, expression, hair, makeup, detail, light, background, camera]);
+    // ComfyUI
+    const cf = `raw photo, ${ageEn} ${genderEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraEn}, ${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
+
+    return { mj, nb, cf };
+  };
+
+  const handleAssembleAndTranslate = async () => {
+    setLoading(true);
+    let translatedDesc = '';
+
+    try {
+      // 1. Translate custom Korean description if present
+      if (customModelDesc.trim()) {
+        const hasKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(customModelDesc);
+        if (hasKorean) {
+          if (geminiApiKey) {
+            // Translate via Gemini
+            const promptText = `Translate this short Korean model description into a short, natural English phrase to be inserted inside an image generation prompt.
+Description: "${customModelDesc}"
+Return ONLY the English translated text, no quotes, no explanations, no markdown.`;
+
+            const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: promptText }] }]
+                }),
+              }
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              translatedDesc = data.candidates[0].content.parts[0].text.trim();
+            } else {
+              throw new Error('Gemini API 번역 실패');
+            }
+          } else {
+            // Translate via MyMemory
+            const res = await fetch(
+              `https://api.mymemory.translated.net/get?q=${encodeURIComponent(customModelDesc)}&langpair=ko|en`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              translatedDesc = data.responseData.translatedText;
+            } else {
+              throw new Error('MyMemory 번역 실패');
+            }
+          }
+        } else {
+          // If already in English, use as is
+          translatedDesc = customModelDesc.trim();
+        }
+      }
+
+      // 2. Compile options and translated text
+      const compiled = compileLocalPrompts(translatedDesc);
+
+      // 3. Update prompts, preserving manually edited fields if dirty
+      if (!isMjEdited) setCustomMjPrompt(compiled.mj);
+      if (!isNbEdited) setCustomNbPrompt(compiled.nb);
+      if (!isCfEdited) setCustomCfPrompt(compiled.cf);
+
+      // Update baseline prompts
+      setPrompts(compiled);
+      showToast('인물 프롬프트 조립 및 번역 완료!');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || '인물 프롬프트 조립 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Compile initial prompts on mount once
+  useEffect(() => {
+    const initial = compileLocalPrompts();
+    setPrompts(initial);
+    setCustomMjPrompt(initial.mj);
+    setCustomNbPrompt(initial.nb);
+    setCustomCfPrompt(initial.cf);
+  }, []);
+
+  const handleResetCustomPrompts = () => {
+    const initial = compileLocalPrompts();
+    setPrompts(initial);
+    setCustomMjPrompt(initial.mj);
+    setCustomNbPrompt(initial.nb);
+    setCustomCfPrompt(initial.cf);
+    setIsMjEdited(false);
+    setIsNbEdited(false);
+    setIsCfEdited(false);
+    setCustomModelDesc('');
+    showToast('기본 프롬프트로 초기화되었습니다.');
+  };
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
     showToast(`${type} 인물 프롬프트가 복사되었습니다.`);
   };
+
+  const activeMj = isMjEdited ? customMjPrompt : (customMjPrompt || prompts.mj);
+  const activeNb = isNbEdited ? customNbPrompt : (customNbPrompt || prompts.nb);
+  const activeCf = isCfEdited ? customCfPrompt : (customCfPrompt || prompts.cf);
 
   return (
     <div className="model-sidebar" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
@@ -226,14 +341,36 @@ export default function ModelPromptGenerator({ showToast }) {
             {CAMERAS.map(c => <option key={c.ko} value={c.ko}>{c.ko}</option>)}
           </select>
         </div>
+
+        {/* Custom model description (Translates!) */}
+        <div className="form-group">
+          <label style={{ fontSize: '0.65rem', fontWeight: 700 }}>의상 및 추가 인물 묘사 (한글)</label>
+          <textarea
+            value={customModelDesc}
+            onChange={(e) => setCustomModelDesc(e.target.value)}
+            placeholder="예: 노란색 겨울 스웨터를 입고 따뜻한 커피 잔을 들고 있음"
+            style={{ width: '100%', minHeight: '42px', fontSize: '0.75rem', padding: '0.375rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', resize: 'vertical' }}
+          />
+        </div>
+
+        {/* Compile & Translate Button */}
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={handleAssembleAndTranslate}
+          disabled={loading}
+          style={{ width: '100%', display: 'flex', gap: '0.25rem', justifyContent: 'center', fontWeight: 600, padding: '0.5rem' }}
+        >
+          <Languages size={12} className={loading ? 'animate-spin' : ''} />
+          {loading ? '조립 및 번역 중...' : geminiApiKey ? '인물 프롬프트 조립 & 번역 (Gemini)' : '인물 프롬프트 조립 & 번역 (MyMemory)'}
+        </button>
       </div>
 
       {/* Warning about Negative Words */}
-      <div style={{ display: 'flex', gap: '0.375rem', padding: '0.5rem 0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '6px', alignItems: 'flex-start', marginTop: '0.25rem' }}>
+      <div style={{ display: 'flex', gap: '0.375rem', padding: '0.5rem 0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '6px', alignItems: 'flex-start', marginTop: '0.5rem' }}>
         <AlertTriangle size={14} style={{ color: 'var(--danger-color)', flexShrink: 0, marginTop: '1px' }} />
         <p style={{ fontSize: '0.65rem', color: '#991b1b', lineHeight: '1.3' }}>
-          <strong>제외된 단어 (금지 필터 적용):</strong><br />
-          perfect skin, smooth, flawless, airbrushed, professional 등은 플라스틱 인형 같은 인위성을 주므로 철저히 제외되고, 실제 인간의 질감을 묘사합니다.
+          <strong>금지 필터 적용:</strong> perfect skin, smooth, flawless, airbrushed, professional 등은 플라스틱 인형 같은 인위성을 주므로 철저히 자동 필터링됩니다.
         </p>
       </div>
 
@@ -243,34 +380,74 @@ export default function ModelPromptGenerator({ showToast }) {
         <div className="prompt-box" style={{ padding: '0.5rem' }}>
           <div className="prompt-box-header" style={{ marginBottom: '2px' }}>
             <span className="prompt-badge badge-mj" style={{ fontSize: '0.55rem' }}>Midjourney Model</span>
-            <button type="button" className="btn btn-text btn-sm" style={{ padding: '2px' }} onClick={() => copyToClipboard(prompts.mj, 'Midjourney')}>
+            <button type="button" className="btn btn-text btn-sm" style={{ padding: '2px' }} onClick={() => copyToClipboard(activeMj, 'Midjourney')}>
               <Copy size={10} />
             </button>
           </div>
-          <div className="prompt-text" style={{ fontSize: '0.725rem', maxHeight: '50px' }}>{prompts.mj}</div>
+          <textarea
+            className="prompt-text"
+            value={activeMj}
+            onChange={(e) => {
+              setCustomMjPrompt(e.target.value);
+              setIsMjEdited(true);
+            }}
+            style={{ width: '100%', minHeight: '50px', border: 'none', background: 'transparent', fontSize: '0.725rem', fontFamily: 'monospace', resize: 'vertical', outline: 'none', padding: 0 }}
+            placeholder="Midjourney 프롬프트 편집..."
+          />
         </div>
 
         {/* NanoBanana */}
         <div className="prompt-box" style={{ padding: '0.5rem' }}>
           <div className="prompt-box-header" style={{ marginBottom: '2px' }}>
             <span className="prompt-badge badge-nb" style={{ fontSize: '0.55rem' }}>NanoBanana Model</span>
-            <button type="button" className="btn btn-text btn-sm" style={{ padding: '2px' }} onClick={() => copyToClipboard(prompts.nb, 'NanoBanana')}>
+            <button type="button" className="btn btn-text btn-sm" style={{ padding: '2px' }} onClick={() => copyToClipboard(activeNb, 'NanoBanana')}>
               <Copy size={10} />
             </button>
           </div>
-          <div className="prompt-text" style={{ fontSize: '0.725rem', maxHeight: '50px' }}>{prompts.nb}</div>
+          <textarea
+            className="prompt-text"
+            value={activeNb}
+            onChange={(e) => {
+              setCustomNbPrompt(e.target.value);
+              setIsNbEdited(true);
+            }}
+            style={{ width: '100%', minHeight: '50px', border: 'none', background: 'transparent', fontSize: '0.725rem', fontFamily: 'monospace', resize: 'vertical', outline: 'none', padding: 0 }}
+            placeholder="NanoBanana 프롬프트 편집..."
+          />
         </div>
 
         {/* ComfyUI */}
         <div className="prompt-box" style={{ padding: '0.5rem' }}>
           <div className="prompt-box-header" style={{ marginBottom: '2px' }}>
             <span className="prompt-badge badge-cf" style={{ fontSize: '0.55rem' }}>ComfyUI Model</span>
-            <button type="button" className="btn btn-text btn-sm" style={{ padding: '2px' }} onClick={() => copyToClipboard(prompts.cf, 'ComfyUI')}>
+            <button type="button" className="btn btn-text btn-sm" style={{ padding: '2px' }} onClick={() => copyToClipboard(activeCf, 'ComfyUI')}>
               <Copy size={10} />
             </button>
           </div>
-          <div className="prompt-text" style={{ fontSize: '0.725rem', maxHeight: '50px' }}>{prompts.cf}</div>
+          <textarea
+            className="prompt-text"
+            value={activeCf}
+            onChange={(e) => {
+              setCustomCfPrompt(e.target.value);
+              setIsCfEdited(true);
+            }}
+            style={{ width: '100%', minHeight: '50px', border: 'none', background: 'transparent', fontSize: '0.725rem', fontFamily: 'monospace', resize: 'vertical', outline: 'none', padding: 0 }}
+            placeholder="ComfyUI 프롬프트 편집..."
+          />
         </div>
+
+        {(isMjEdited || isNbEdited || isCfEdited || customModelDesc) && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.125rem' }}>
+            <button
+              type="button"
+              className="btn btn-text btn-sm"
+              style={{ fontSize: '0.65rem', textDecoration: 'underline', display: 'flex', gap: '0.125rem', alignItems: 'center' }}
+              onClick={handleResetCustomPrompts}
+            >
+              <RotateCcw size={10} /> 기본 프롬프트로 초기화
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
