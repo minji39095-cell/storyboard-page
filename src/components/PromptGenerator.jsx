@@ -77,11 +77,13 @@ export default function PromptGenerator({
     customCfPrompt = '',
     customGkPrompt = '',
     customSdPrompt = '',
+    customLxPrompt = '',
     isMjEdited = false,
     isNbEdited = false,
     isCfEdited = false,
     isGkEdited = false,
-    isSdEdited = false
+    isSdEdited = false,
+    isLxEdited = false
   } = frame;
 
   // Local compiler when AI is not used
@@ -95,22 +97,25 @@ export default function PromptGenerator({
     // Use English translated story if available, fallback to Korean story
     const storyText = storyEn || story.trim() || 'A simple scene';
 
-    // Midjourney: comma separated keywords
+    // Midjourney
     const mj = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn} --ar ${aspectRatio} --v 6.0`;
 
-    // NanoBanana: Descriptive paragraphs
+    // NanoBanana
     const nb = `A detailed ${STYLES[stylePreset]?.noun || 'illustration'} depicting: ${storyText}. The scene features a ${shotEn} with ${cameraEn}. The general mood is ${toneEn}, rendered in a ${colorEn}.`;
 
-    // ComfyUI z-image-turbo: Comma separated tags with quality suffixes, no parameters
+    // ComfyUI z-image-turbo
     const cf = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}, highly detailed, masterpiece, sharp focus, 8k`;
 
-    // ComfyUI Grok: raw photo + natural structure
+    // ComfyUI Grok
     const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}, ${cameraEn}. Atmosphere: ${toneEn}. Colors: ${colorEn}. Realism, high resolution.`;
 
-    // Seedance: cinematic grading + commercial video tags
+    // Seedance
     const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera motion: ${cameraEn}, tone: ${toneEn}, color grade: ${colorEn}, high quality cinematic render, 8k resolution`;
 
-    return { mj, nb, cf, gk, sd };
+    // LTX Video
+    const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${cameraEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}. Smooth motion, highly detailed, photorealistic render.`;
+
+    return { mj, nb, cf, gk, sd, lx };
   };
 
   const localPrompts = compileLocalPrompts();
@@ -119,6 +124,7 @@ export default function PromptGenerator({
   const activeCf = customCfPrompt !== '' ? customCfPrompt : localPrompts.cf;
   const activeGk = customGkPrompt !== '' ? customGkPrompt : localPrompts.gk;
   const activeSd = customSdPrompt !== '' ? customSdPrompt : localPrompts.sd;
+  const activeLx = customLxPrompt !== '' ? customLxPrompt : localPrompts.lx;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -136,8 +142,8 @@ export default function PromptGenerator({
 
     try {
       if (geminiApiKey) {
-        // A. Premium Translate & AI Expand via Gemini API (Manual trigger)
-        const promptText = `Translate this storyboard scene story (written in Korean) into English and expand it into high-quality image generation prompts.
+        // A. Premium Translate & AI Expand via Gemini API
+        const promptText = `Translate this storyboard scene story (written in Korean) into English and expand it into high-quality image/video generation prompts.
 Story in Korean: "${story}"
 Style: "${STYLES[stylePreset]?.ko} (${STYLES[stylePreset]?.en})"
 Shot Type: "${SHOTS[shotType]?.ko} (${SHOTS[shotType]?.en})"
@@ -145,13 +151,14 @@ Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
-Provide a JSON object containing exactly six fields:
+Provide a JSON object containing exactly seven fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
-2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, cinematic tags, ending with parameters like --ar ${aspectRatio} --v 6.0).
-3. "nanobanana": A prompt optimized for NanoBanana / Google Gemini Imagen 3 (a cohesive, detailed, descriptive English paragraph describing the scene layout, lighting, color, and characters).
-4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (focusing on descriptive tags, style triggers, high-quality modifiers like masterpiece, no parameters).
-5. "grok": A prompt optimized for Grok (Flux/Grok style, natural language with punchy descriptive tags).
-6. "seedance": A prompt optimized for Seedance (cinematic commercial format, focusing on motion tags and high-end video grading).
+2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, ending with --ar ${aspectRatio} --v 6.0).
+3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout and lighting).
+4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (tags, triggers, masterpiece modifiers).
+5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags).
+6. "seedance": A prompt optimized for Seedance (cinematic commercial camera motion and color grading video tags).
+7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera pan speed, and natural lighting transition).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
@@ -179,15 +186,15 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         const textResponse = data.candidates[0].content.parts[0].text;
         const parsed = JSON.parse(textResponse);
 
-        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui && parsed.grok && parsed.seedance) {
+        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui && parsed.grok && parsed.seedance && parsed.ltxvideo) {
           const updateData = { storyEn: parsed.storyEn };
           
-          // Only overwrite prompt fields if they HAVE NOT been manually edited by the user
           if (!isMjEdited) updateData.customMjPrompt = parsed.midjourney;
           if (!isNbEdited) updateData.customNbPrompt = parsed.nanobanana;
           if (!isCfEdited) updateData.customCfPrompt = parsed.comfyui;
           if (!isGkEdited) updateData.customGkPrompt = parsed.grok;
           if (!isSdEdited) updateData.customSdPrompt = parsed.seedance;
+          if (!isLxEdited) updateData.customLxPrompt = parsed.ltxvideo;
 
           onChange(updateData);
           showToast('AI 번역 및 고도화 완료');
@@ -195,7 +202,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
           throw new Error('데이터 파싱 오류');
         }
       } else {
-        // B. Fallback Free Translate via MyMemory API (Manual trigger)
+        // B. Fallback Free Translate via MyMemory API
         const res = await fetch(
           `https://api.mymemory.translated.net/get?q=${encodeURIComponent(story)}&langpair=ko|en`
         );
@@ -211,7 +218,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             isNbEdited: false,
             isCfEdited: false,
             isGkEdited: false,
-            isSdEdited: false
+            isSdEdited: false,
+            isLxEdited: false
           });
           showToast('영문 번역 완료 (MyMemory)');
         } else {
@@ -233,11 +241,13 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       customCfPrompt: '',
       customGkPrompt: '',
       customSdPrompt: '',
+      customLxPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
       isGkEdited: false,
-      isSdEdited: false
+      isSdEdited: false,
+      isLxEdited: false
     });
   };
 
@@ -428,7 +438,40 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         />
       </div>
 
-      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited) && (
+      {/* LTX Video Box */}
+      <div className="prompt-box">
+        <div className="prompt-box-header">
+          <span className="prompt-badge" style={{ backgroundColor: '#ec4899', color: '#ffffff', fontSize: '0.65rem' }}>LTX Video</span>
+          <button 
+            type="button" 
+            className="btn btn-text btn-sm" 
+            style={{ padding: '2px' }}
+            onClick={() => copyToClipboard(activeLx, 'LTX Video')}
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+        <textarea
+          className="prompt-text"
+          value={activeLx}
+          onChange={(e) => onChange({ customLxPrompt: e.target.value, isLxEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '60px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="LTX Video 프롬프트 편집..."
+        />
+      </div>
+
+      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
