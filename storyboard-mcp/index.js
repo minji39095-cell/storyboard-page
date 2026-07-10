@@ -34,6 +34,16 @@ const CAMERAS = {
   tracking: { ko: '트래킹', en: 'tracking camera movement' }
 };
 
+const CAMERA_GEAR = {
+  none: { ko: '기본 (장비 미지정)', en: '' },
+  hasselblad: { ko: 'Hasselblad H6D (중형)', en: 'shot on Hasselblad H6D-100c' },
+  leica: { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11, Summilux-M 50mm f/1.4 ASPH lens' },
+  fujifilm: { ko: 'Fujifilm GFX (후지)', en: 'shot on Fujifilm GFX 100S, GF 110mm lens' },
+  sony: { ko: 'Sony a7R V (소니)', en: 'shot on Sony a7R V, 85mm f/1.4 GM lens' },
+  canon: { ko: 'Canon EOS R5 (캐논)', en: 'shot on Canon EOS R5, 50mm f/1.2 L lens' },
+  arri: { ko: 'Arri Alexa Mini (시네마)', en: 'filmed on Arri Alexa Mini, cinematic Master Prime lens' }
+};
+
 const TONES = {
   dreamy: { ko: '몽환적인', en: 'dreamy, ethereal atmosphere' },
   cinematic: { ko: '극적인 시네마틱', en: 'cinematic, dramatic mood' },
@@ -97,6 +107,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             stylePreset: { type: "string", enum: Object.keys(STYLES), default: "cinematic", description: "Visual style preset." },
             shotType: { type: "string", enum: Object.keys(SHOTS), default: "cu", description: "Camera shot type." },
             cameraMove: { type: "string", enum: Object.keys(CAMERAS), default: "static", description: "Camera movement." },
+            cameraGear: { type: "string", enum: Object.keys(CAMERA_GEAR), default: "none", description: "Camera gear equipment (e.g. none, leica, arri)." },
             tone: { type: "string", enum: Object.keys(TONES), default: "cinematic", description: "Atmospheric tone/mood." },
             colorPalette: { type: "string", enum: Object.keys(COLORS), default: "amber", description: "Color palette tone." },
             aspectRatio: { type: "string", default: "16:9", description: "Aspect ratio parameter (e.g., 16:9)." }
@@ -138,6 +149,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const stylePreset = args.stylePreset || 'cinematic';
       const shotType = args.shotType || 'cu';
       const cameraMove = args.cameraMove || 'static';
+      const cameraGear = args.cameraGear || 'none';
       const tone = args.tone || 'cinematic';
       const colorPalette = args.colorPalette || 'amber';
       const aspectRatio = args.aspectRatio || '16:9';
@@ -145,28 +157,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const styleEn = STYLES[stylePreset]?.en || '';
       const shotEn = SHOTS[shotType]?.en || '';
       const cameraEn = CAMERAS[cameraMove]?.en || '';
+      const gearEn = CAMERA_GEAR[cameraGear]?.en || '';
       const toneEn = TONES[tone]?.en || '';
       const colorEn = COLORS[colorPalette]?.en || '';
 
       const storyEn = await translateKoToEn(story);
 
+      const gearSuffix = gearEn ? `, ${gearEn}` : '';
+      const gearSentence = gearEn ? ` It is ${gearEn}.` : '';
+
       // Midjourney
-      const mj = `${storyEn}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn} --ar ${aspectRatio} --v 6.0`;
+      const mj = `${storyEn}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
 
       // NanoBanana
-      const nb = `A detailed ${STYLES[stylePreset]?.noun || 'illustration'} depicting: ${storyEn}. The scene features a ${shotEn} with ${cameraEn}. The general mood is ${toneEn}, rendered in a ${colorEn}.`;
+      const nb = `A detailed ${STYLES[stylePreset]?.noun || 'illustration'} depicting: ${storyEn}. The scene features a ${shotEn} with ${cameraEn}.${gearSentence} The general mood is ${toneEn}, rendered in a ${colorEn}.`;
 
       // ComfyUI
-      const cf = `${storyEn}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}, highly detailed, masterpiece, sharp focus, 8k`;
+      const cf = `${storyEn}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix}, highly detailed, masterpiece, sharp focus, 8k`;
 
       // ComfyUI Grok
-      const gk = `A raw, detailed photo showing: ${storyEn}. Style: ${styleEn}. Composition: ${shotEn}, ${cameraEn}. Atmosphere: ${toneEn}. Colors: ${colorEn}. Realism, high resolution.`;
+      const gk = `A raw, detailed photo showing: ${storyEn}. Style: ${styleEn}. Composition: ${shotEn}, ${cameraEn}. Atmosphere: ${toneEn}. Colors: ${colorEn}${gearSuffix}. Realism, high resolution.`;
 
       // Seedance
-      const sd = `commercial film look, ${storyEn}, ${styleEn}, ${shotEn}, camera motion: ${cameraEn}, tone: ${toneEn}, color grade: ${colorEn}, high quality cinematic render, 8k resolution`;
+      const sd = `commercial film look, ${storyEn}, ${styleEn}, ${shotEn}, camera motion: ${cameraEn}, tone: ${toneEn}, color grade: ${colorEn}${gearSuffix}, high quality cinematic render, 8k resolution`;
 
       // LTX Video
-      const lx = `A realistic commercial video clip: ${storyEn}. Style: ${styleEn}. Camera movement: ${cameraEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}. Smooth motion, highly detailed, photorealistic render.`;
+      const lx = `A realistic commercial video clip: ${storyEn}. Style: ${styleEn}. Camera movement: ${cameraEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}${gearSuffix}. Smooth motion, highly detailed, photorealistic render.`;
 
       return {
         content: [

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Trash2, PenTool, Upload, Image as ImageIcon, X, Sparkles, AlertCircle } from 'lucide-react';
 import DrawingCanvas from './DrawingCanvas';
-import PromptGenerator, { STYLES, SHOTS, CAMERAS, TONES, COLORS } from './PromptGenerator';
+import PromptGenerator, { STYLES, SHOTS, CAMERAS, TONES, COLORS, CAMERA_GEAR } from './PromptGenerator';
 
 const AD_PRESETS = {
   cosmetics: {
@@ -529,8 +529,8 @@ Provide ONLY the final script text. Do not include any explanations, code block 
           </div>
         </div>
 
-        {/* Shot Type & Camera Move */}
-        <div className="form-row">
+        {/* Shot Type & Camera Move & Camera Gear */}
+        <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
           <div className="form-group">
             <label>카메라 샷 크기</label>
             <select
@@ -549,6 +549,17 @@ Provide ONLY the final script text. Do not include any explanations, code block 
               onChange={(e) => handleUpdate({ cameraMove: e.target.value })}
             >
               {Object.entries(CAMERAS).map(([key, val]) => (
+                <option key={key} value={key}>{val.ko}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>카메라 장비</label>
+            <select
+              value={frame.cameraGear || 'none'}
+              onChange={(e) => handleUpdate({ cameraGear: e.target.value })}
+            >
+              {Object.entries(CAMERA_GEAR).map(([key, val]) => (
                 <option key={key} value={key}>{val.ko}</option>
               ))}
             </select>

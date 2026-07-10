@@ -33,6 +33,16 @@ export const CAMERAS = {
   tracking: { ko: '트래킹', en: 'tracking camera movement' }
 };
 
+export const CAMERA_GEAR = {
+  none: { ko: '기본 (장비 미지정)', en: '' },
+  hasselblad: { ko: 'Hasselblad H6D (중형)', en: 'shot on Hasselblad H6D-100c' },
+  leica: { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11, Summilux-M 50mm f/1.4 ASPH lens' },
+  fujifilm: { ko: 'Fujifilm GFX (후지)', en: 'shot on Fujifilm GFX 100S, GF 110mm lens' },
+  sony: { ko: 'Sony a7R V (소니)', en: 'shot on Sony a7R V, 85mm f/1.4 GM lens' },
+  canon: { ko: 'Canon EOS R5 (캐논)', en: 'shot on Canon EOS R5, 50mm f/1.2 L lens' },
+  arri: { ko: 'Arri Alexa Mini (시네마)', en: 'filmed on Arri Alexa Mini, cinematic Master Prime lens' }
+};
+
 export const TONES = {
   dreamy: { ko: '몽환적인', en: 'dreamy, ethereal atmosphere' },
   cinematic: { ko: '극적인 시네마틱', en: 'cinematic, dramatic mood' },
@@ -69,6 +79,7 @@ export default function PromptGenerator({
     stylePreset = 'cinematic', 
     shotType = 'cu', 
     cameraMove = 'static', 
+    cameraGear = 'none',
     tone = 'cinematic', 
     colorPalette = 'amber', 
     aspectRatio = '16:9',
@@ -91,29 +102,33 @@ export default function PromptGenerator({
     const styleEn = STYLES[stylePreset]?.en || '';
     const shotEn = SHOTS[shotType]?.en || '';
     const cameraEn = CAMERAS[cameraMove]?.en || '';
+    const gearEn = CAMERA_GEAR[cameraGear]?.en || '';
     const toneEn = TONES[tone]?.en || '';
     const colorEn = COLORS[colorPalette]?.en || '';
 
     // Use English translated story if available, fallback to Korean story
     const storyText = storyEn || story.trim() || 'A simple scene';
 
+    const gearSuffix = gearEn ? `, ${gearEn}` : '';
+    const gearSentence = gearEn ? ` It is ${gearEn}.` : '';
+
     // Midjourney
-    const mj = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn} --ar ${aspectRatio} --v 6.0`;
+    const mj = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
 
     // NanoBanana
-    const nb = `A detailed ${STYLES[stylePreset]?.noun || 'illustration'} depicting: ${storyText}. The scene features a ${shotEn} with ${cameraEn}. The general mood is ${toneEn}, rendered in a ${colorEn}.`;
+    const nb = `A detailed ${STYLES[stylePreset]?.noun || 'illustration'} depicting: ${storyText}. The scene features a ${shotEn} with ${cameraEn}.${gearSentence} The general mood is ${toneEn}, rendered in a ${colorEn}.`;
 
     // ComfyUI z-image-turbo
-    const cf = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}, highly detailed, masterpiece, sharp focus, 8k`;
+    const cf = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix}, highly detailed, masterpiece, sharp focus, 8k`;
 
     // ComfyUI Grok
-    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}, ${cameraEn}. Atmosphere: ${toneEn}. Colors: ${colorEn}. Realism, high resolution.`;
+    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}, ${cameraEn}. Atmosphere: ${toneEn}. Colors: ${colorEn}${gearSuffix}. Realism, high resolution.`;
 
     // Seedance
-    const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera motion: ${cameraEn}, tone: ${toneEn}, color grade: ${colorEn}, high quality cinematic render, 8k resolution`;
+    const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera motion: ${cameraEn}, tone: ${toneEn}, color grade: ${colorEn}${gearSuffix}, high quality cinematic render, 8k resolution`;
 
     // LTX Video
-    const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${cameraEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}. Smooth motion, highly detailed, photorealistic render.`;
+    const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${cameraEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}${gearSuffix}. Smooth motion, highly detailed, photorealistic render.`;
 
     return { mj, nb, cf, gk, sd, lx };
   };
@@ -148,17 +163,18 @@ Story in Korean: "${story}"
 Style: "${STYLES[stylePreset]?.ko} (${STYLES[stylePreset]?.en})"
 Shot Type: "${SHOTS[shotType]?.ko} (${SHOTS[shotType]?.en})"
 Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
+Camera Gear: "${CAMERA_GEAR[cameraGear]?.ko} (${CAMERA_GEAR[cameraGear]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
 Provide a JSON object containing exactly seven fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
-2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, ending with --ar ${aspectRatio} --v 6.0).
-3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout and lighting).
-4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (tags, triggers, masterpiece modifiers).
-5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags).
-6. "seedance": A prompt optimized for Seedance (cinematic commercial camera motion and color grading video tags).
-7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera pan speed, and natural lighting transition).
+2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, ending with --ar ${aspectRatio} --v 6.0, incorporating the specified camera gear if appropriate).
+3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout and lighting, incorporating camera gear style).
+4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (tags, triggers, masterpiece modifiers, camera gear tag).
+5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags, including camera gear details).
+6. "seedance": A prompt optimized for Seedance (cinematic commercial camera motion, color grading video tags, and camera gear look).
+7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera pan speed, and camera gear lens effects).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
