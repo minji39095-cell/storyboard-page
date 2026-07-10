@@ -80,12 +80,23 @@ const BACKGROUNDS = [
 ];
 
 const CAMERAS = [
-  { ko: 'Hasselblad H6D (럭셔리 중형)', en: 'shot on Hasselblad H6D-100c, 80mm lens, f/2.8' },
-  { ko: 'Leica M11 (레전드 라이카)', en: 'shot on Leica M11, Summilux-M 50mm f/1.4 ASPH lens' },
-  { ko: 'Fujifilm GFX 100S (중형 색감)', en: 'shot on Fujifilm GFX 100S, GF 110mm f/2 R LM WR lens' },
-  { ko: 'Sony a7R V (인물 최적)', en: 'shot on Sony a7R V, 85mm f/1.4 GM lens' },
-  { ko: 'Canon EOS R5 (표준 단렌즈)', en: 'shot on Canon EOS R5, 50mm f/1.2 L lens' },
-  { ko: 'Arri Alexa Mini (시네마틱)', en: 'filmed on Arri Alexa Mini, Master Prime lens' }
+  { ko: 'Hasselblad H6D (중형)', en: 'shot on Hasselblad H6D-100c' },
+  { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11' },
+  { ko: 'Fujifilm GFX (후지)', en: 'shot on Fujifilm GFX 100S' },
+  { ko: 'Sony a7R V (소니)', en: 'shot on Sony a7R V' },
+  { ko: 'Canon EOS R5 (캐논)', en: 'shot on Canon EOS R5' },
+  { ko: 'Arri Alexa Mini (시네마)', en: 'filmed on Arri Alexa Mini' }
+];
+
+const LENS_MMS = [
+  { ko: '기본 (렌즈 미지정)', en: '' },
+  { ko: '12mm (초광각)', en: '12mm ultra-wide lens' },
+  { ko: '24mm (광각)', en: '24mm wide-angle lens' },
+  { ko: '35mm (시네 35)', en: '35mm prime lens' },
+  { ko: '50mm (표준)', en: '50mm standard lens' },
+  { ko: '85mm (인물)', en: '85mm portrait lens' },
+  { ko: '135mm (망원)', en: '135mm telephoto lens' },
+  { ko: '200mm (초망원)', en: '200mm super telephoto lens' }
 ];
 
 export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
@@ -99,7 +110,8 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [detail, setDetail] = useState('잔주름 및 모공 강조');
   const [light, setLight] = useState('렘브란트 라이트 (명암)');
   const [background, setBackground] = useState('부드럽게 흐려진 실내');
-  const [camera, setCamera] = useState('Hasselblad H6D (럭셔리 중형)');
+  const [camera, setCamera] = useState('Leica M11 (라이카)');
+  const [lensMm, setLensMm] = useState('기본 (렌즈 미지정)');
   
   // Custom description in Korean
   const [customModelDesc, setCustomModelDesc] = useState('');
@@ -137,27 +149,35 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const lightEn = LIGHTS.find(l => l.ko === light)?.en || '';
     const bgEn = BACKGROUNDS.find(b => b.ko === background)?.en || '';
     const cameraEn = CAMERAS.find(c => c.ko === camera)?.en || '';
+    const lensEn = LENS_MMS.find(l => l.ko === lensMm)?.en || '';
 
     const descPart = customDescEn ? `, ${customDescEn}` : '';
     const descPartNb = customDescEn ? `, featuring ${customDescEn}` : '';
 
+    let cameraSpec = '';
+    if (cameraEn && lensEn) {
+      cameraSpec = `${cameraEn} with ${lensEn}`;
+    } else {
+      cameraSpec = cameraEn || lensEn || '';
+    }
+
     // Midjourney
-    const mj = `A raw photo of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}, ${cameraEn} --ar 16:9 --v 6.0 --style raw`;
+    const mj = `A raw photo of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''} --ar 16:9 --v 6.0 --style raw`;
 
     // NanoBanana
-    const nb = `A highly detailed, raw realistic photograph. The subject is a ${ageEn} ${genderEn} with a ${exprEn}${descPartNb}, featuring ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraEn} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is a ${ageEn} ${genderEn} with a ${exprEn}${descPartNb}, featuring ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraSpec || 'professional camera'} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
     // ComfyUI
-    const cf = `raw photo, ${ageEn} ${genderEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraEn}, ${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
+    const cf = `raw photo, ${ageEn} ${genderEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraSpec ? cameraSpec + ', ' : ''}${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
 
     // ComfyUI Grok
-    const gk = `A raw portrait photograph of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}. Shot on ${cameraEn}.`;
+    const gk = `A raw portrait photograph of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}.`;
 
     // Seedance
-    const sd = `raw studio photo, ${ageEn} ${genderEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraEn}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
+    const sd = `raw studio photo, ${ageEn} ${genderEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSpec || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
 
     // LTX Video
-    const lx = `A realistic commercial video clip of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}. Shot on ${cameraEn}. Photorealistic, natural motion, high-end commercial grade.`;
+    const lx = `A realistic commercial video clip of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}. Photorealistic, natural motion, high-end commercial grade.`;
 
     return { mj, nb, cf, gk, sd, lx };
   };
@@ -350,7 +370,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           </select>
         </div>
 
-        {/* Lighting, Background, Camera */}
+        {/* Lighting & Background */}
         <div className="form-group">
           <label style={{ fontSize: '0.65rem' }}>조명 설정</label>
           <select value={light} onChange={(e) => setLight(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
@@ -365,11 +385,20 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           </select>
         </div>
 
-        <div className="form-group">
-          <label style={{ fontSize: '0.65rem' }}>카메라 장비</label>
-          <select value={camera} onChange={(e) => setCamera(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
-            {CAMERAS.map(c => <option key={c.ko} value={c.ko}>{c.ko}</option>)}
-          </select>
+        {/* Camera Gear & Lens Focal Length (mm) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+          <div className="form-group">
+            <label style={{ fontSize: '0.65rem' }}>카메라 장비</label>
+            <select value={camera} onChange={(e) => setCamera(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
+              {CAMERAS.map(c => <option key={c.ko} value={c.ko}>{c.ko}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label style={{ fontSize: '0.65rem' }}>렌즈 화각</label>
+            <select value={lensMm} onChange={(e) => setLensMm(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
+              {LENS_MMS.map(l => <option key={l.ko} value={l.ko}>{l.ko}</option>)}
+            </select>
+          </div>
         </div>
 
         {/* Custom model description (Translates!) */}
