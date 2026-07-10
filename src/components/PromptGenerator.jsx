@@ -36,11 +36,22 @@ export const CAMERAS = {
 export const CAMERA_GEAR = {
   none: { ko: '기본 (장비 미지정)', en: '' },
   hasselblad: { ko: 'Hasselblad H6D (중형)', en: 'shot on Hasselblad H6D-100c' },
-  leica: { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11, Summilux-M 50mm f/1.4 ASPH lens' },
-  fujifilm: { ko: 'Fujifilm GFX (후지)', en: 'shot on Fujifilm GFX 100S, GF 110mm lens' },
-  sony: { ko: 'Sony a7R V (소니)', en: 'shot on Sony a7R V, 85mm f/1.4 GM lens' },
-  canon: { ko: 'Canon EOS R5 (캐논)', en: 'shot on Canon EOS R5, 50mm f/1.2 L lens' },
-  arri: { ko: 'Arri Alexa Mini (시네마)', en: 'filmed on Arri Alexa Mini, cinematic Master Prime lens' }
+  leica: { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11' },
+  fujifilm: { ko: 'Fujifilm GFX (후지)', en: 'shot on Fujifilm GFX 100S' },
+  sony: { ko: 'Sony a7R V (소니)', en: 'shot on Sony a7R V' },
+  canon: { ko: 'Canon EOS R5 (캐논)', en: 'shot on Canon EOS R5' },
+  arri: { ko: 'Arri Alexa Mini (시네마)', en: 'filmed on Arri Alexa Mini' }
+};
+
+export const LENS_MM = {
+  none: { ko: '기본 (렌즈 미지정)', en: '' },
+  mm12: { ko: '12mm (초광각)', en: '12mm ultra-wide lens' },
+  mm24: { ko: '24mm (광각)', en: '24mm wide-angle lens' },
+  mm35: { ko: '35mm (시네 35)', en: '35mm prime lens' },
+  mm50: { ko: '50mm (표준)', en: '50mm standard lens' },
+  mm85: { ko: '85mm (인물)', en: '85mm portrait lens' },
+  mm135: { ko: '135mm (망원)', en: '135mm telephoto lens' },
+  mm200: { ko: '200mm (초망원)', en: '200mm super telephoto lens' }
 };
 
 export const TONES = {
@@ -80,6 +91,7 @@ export default function PromptGenerator({
     shotType = 'cu', 
     cameraMove = 'static', 
     cameraGear = 'none',
+    lensMm = 'none',
     tone = 'cinematic', 
     colorPalette = 'amber', 
     aspectRatio = '16:9',
@@ -103,14 +115,23 @@ export default function PromptGenerator({
     const shotEn = SHOTS[shotType]?.en || '';
     const cameraEn = CAMERAS[cameraMove]?.en || '';
     const gearEn = CAMERA_GEAR[cameraGear]?.en || '';
+    const lensEn = LENS_MM[lensMm]?.en || '';
     const toneEn = TONES[tone]?.en || '';
     const colorEn = COLORS[colorPalette]?.en || '';
 
     // Use English translated story if available, fallback to Korean story
     const storyText = storyEn || story.trim() || 'A simple scene';
 
-    const gearSuffix = gearEn ? `, ${gearEn}` : '';
-    const gearSentence = gearEn ? ` It is ${gearEn}.` : '';
+    // Combine gear and lens nicely
+    let cameraSpec = '';
+    if (gearEn && lensEn) {
+      cameraSpec = `${gearEn} with ${lensEn}`;
+    } else {
+      cameraSpec = gearEn || lensEn || '';
+    }
+
+    const gearSuffix = cameraSpec ? `, ${cameraSpec}` : '';
+    const gearSentence = cameraSpec ? ` Captured with ${cameraSpec}.` : '';
 
     // Midjourney
     const mj = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
@@ -164,17 +185,18 @@ Style: "${STYLES[stylePreset]?.ko} (${STYLES[stylePreset]?.en})"
 Shot Type: "${SHOTS[shotType]?.ko} (${SHOTS[shotType]?.en})"
 Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
 Camera Gear: "${CAMERA_GEAR[cameraGear]?.ko} (${CAMERA_GEAR[cameraGear]?.en})"
+Lens mm: "${LENS_MM[lensMm]?.ko} (${LENS_MM[lensMm]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
 Provide a JSON object containing exactly seven fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
-2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, ending with --ar ${aspectRatio} --v 6.0, incorporating the specified camera gear if appropriate).
-3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout and lighting, incorporating camera gear style).
-4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (tags, triggers, masterpiece modifiers, camera gear tag).
-5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags, including camera gear details).
-6. "seedance": A prompt optimized for Seedance (cinematic commercial camera motion, color grading video tags, and camera gear look).
-7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera pan speed, and camera gear lens effects).
+2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, ending with --ar ${aspectRatio} --v 6.0, incorporating the specified camera gear and lens focal length if appropriate).
+3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, camera lens focal length, and lighting).
+4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (tags, triggers, masterpiece modifiers, camera gear and lens mm tags).
+5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags, including camera gear and lens details).
+6. "seedance": A prompt optimized for Seedance (cinematic commercial camera motion, camera gear and lens setup, color grading video tags).
+7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera lens zoom/perspective, and camera gear effects).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 

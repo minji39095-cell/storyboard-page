@@ -37,11 +37,22 @@ const CAMERAS = {
 const CAMERA_GEAR = {
   none: { ko: '기본 (장비 미지정)', en: '' },
   hasselblad: { ko: 'Hasselblad H6D (중형)', en: 'shot on Hasselblad H6D-100c' },
-  leica: { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11, Summilux-M 50mm f/1.4 ASPH lens' },
-  fujifilm: { ko: 'Fujifilm GFX (후지)', en: 'shot on Fujifilm GFX 100S, GF 110mm lens' },
-  sony: { ko: 'Sony a7R V (소니)', en: 'shot on Sony a7R V, 85mm f/1.4 GM lens' },
-  canon: { ko: 'Canon EOS R5 (캐논)', en: 'shot on Canon EOS R5, 50mm f/1.2 L lens' },
-  arri: { ko: 'Arri Alexa Mini (시네마)', en: 'filmed on Arri Alexa Mini, cinematic Master Prime lens' }
+  leica: { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11' },
+  fujifilm: { ko: 'Fujifilm GFX (후지)', en: 'shot on Fujifilm GFX 100S' },
+  sony: { ko: 'Sony a7R V (소니)', en: 'shot on Sony a7R V' },
+  canon: { ko: 'Canon EOS R5 (캐논)', en: 'shot on Canon EOS R5' },
+  arri: { ko: 'Arri Alexa Mini (시네마)', en: 'filmed on Arri Alexa Mini' }
+};
+
+const LENS_MM = {
+  none: { ko: '기본 (렌즈 미지정)', en: '' },
+  mm12: { ko: '12mm (초광각)', en: '12mm ultra-wide lens' },
+  mm24: { ko: '24mm (광각)', en: '24mm wide-angle lens' },
+  mm35: { ko: '35mm (시네 35)', en: '35mm prime lens' },
+  mm50: { ko: '50mm (표준)', en: '50mm standard lens' },
+  mm85: { ko: '85mm (인물)', en: '85mm portrait lens' },
+  mm135: { ko: '135mm (망원)', en: '135mm telephoto lens' },
+  mm200: { ko: '200mm (초망원)', en: '200mm super telephoto lens' }
 };
 
 const TONES = {
@@ -108,6 +119,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             shotType: { type: "string", enum: Object.keys(SHOTS), default: "cu", description: "Camera shot type." },
             cameraMove: { type: "string", enum: Object.keys(CAMERAS), default: "static", description: "Camera movement." },
             cameraGear: { type: "string", enum: Object.keys(CAMERA_GEAR), default: "none", description: "Camera gear equipment (e.g. none, leica, arri)." },
+            lensMm: { type: "string", enum: Object.keys(LENS_MM), default: "none", description: "Lens focal length (e.g. none, mm24, mm50)." },
             tone: { type: "string", enum: Object.keys(TONES), default: "cinematic", description: "Atmospheric tone/mood." },
             colorPalette: { type: "string", enum: Object.keys(COLORS), default: "amber", description: "Color palette tone." },
             aspectRatio: { type: "string", default: "16:9", description: "Aspect ratio parameter (e.g., 16:9)." }
@@ -150,6 +162,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const shotType = args.shotType || 'cu';
       const cameraMove = args.cameraMove || 'static';
       const cameraGear = args.cameraGear || 'none';
+      const lensMm = args.lensMm || 'none';
       const tone = args.tone || 'cinematic';
       const colorPalette = args.colorPalette || 'amber';
       const aspectRatio = args.aspectRatio || '16:9';
@@ -158,13 +171,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const shotEn = SHOTS[shotType]?.en || '';
       const cameraEn = CAMERAS[cameraMove]?.en || '';
       const gearEn = CAMERA_GEAR[cameraGear]?.en || '';
+      const lensEn = LENS_MM[lensMm]?.en || '';
       const toneEn = TONES[tone]?.en || '';
       const colorEn = COLORS[colorPalette]?.en || '';
 
       const storyEn = await translateKoToEn(story);
 
-      const gearSuffix = gearEn ? `, ${gearEn}` : '';
-      const gearSentence = gearEn ? ` It is ${gearEn}.` : '';
+      let cameraSpec = '';
+      if (gearEn && lensEn) {
+        cameraSpec = `${gearEn} with ${lensEn}`;
+      } else {
+        cameraSpec = gearEn || lensEn || '';
+      }
+
+      const gearSuffix = cameraSpec ? `, ${cameraSpec}` : '';
+      const gearSentence = cameraSpec ? ` Captured with ${cameraSpec}.` : '';
 
       // Midjourney
       const mj = `${storyEn}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
