@@ -46,13 +46,24 @@ const CAMERA_GEAR = {
 
 const LENS_MM = {
   none: { ko: '기본 (렌즈 미지정)', en: '' },
-  mm12: { ko: '12mm (초광각)', en: '12mm ultra-wide lens' },
-  mm24: { ko: '24mm (광각)', en: '24mm wide-angle lens' },
-  mm35: { ko: '35mm (시네 35)', en: '35mm prime lens' },
-  mm50: { ko: '50mm (표준)', en: '50mm standard lens' },
-  mm85: { ko: '85mm (인물)', en: '85mm portrait lens' },
-  mm135: { ko: '135mm (망원)', en: '135mm telephoto lens' },
-  mm200: { ko: '200mm (초망원)', en: '200mm super telephoto lens' }
+  mm12: { ko: '12mm (초광각)', en: '12mm lens' },
+  mm24: { ko: '24mm (광각)', en: '24mm lens' },
+  mm35: { ko: '35mm (시네 35)', en: '35mm lens' },
+  mm50: { ko: '50mm (표준)', en: '50mm lens' },
+  mm85: { ko: '85mm (인물)', en: '85mm lens' },
+  mm135: { ko: '135mm (망원)', en: '135mm lens' },
+  mm200: { ko: '200mm (초망원)', en: '200mm lens' }
+};
+
+const LENS_TYPES = {
+  none: { ko: '기본 (렌즈종류 미지정)', en: '' },
+  noctilux: { ko: 'Leica Noctilux f/0.95 (아웃포커싱)', en: 'Leica Noctilux-M 50mm f/0.95 lens' },
+  otus: { ko: 'Zeiss Otus f/1.4 (초고해상도)', en: 'Zeiss Otus 55mm f/1.4 lens' },
+  anamorphic: { ko: 'Anamorphic (시네마 플레어)', en: 'anamorphic lens' },
+  master_prime: { ko: 'Arri Master Prime (영화 표준)', en: 'ARRI Zeiss Master Prime lens' },
+  cooke: { ko: 'Cooke S4/i (따뜻하고 클래식)', en: 'Cooke S4/i prime lens' },
+  helios: { ko: 'Helios 44-2 (회오리 보케)', en: 'vintage Helios 44-2 lens' },
+  canon_l: { ko: 'Canon L-Series (광고 표준)', en: 'Canon L-series USM lens' }
 };
 
 const TONES = {
@@ -120,6 +131,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             cameraMove: { type: "string", enum: Object.keys(CAMERAS), default: "static", description: "Camera movement." },
             cameraGear: { type: "string", enum: Object.keys(CAMERA_GEAR), default: "none", description: "Camera gear equipment (e.g. none, leica, arri)." },
             lensMm: { type: "string", enum: Object.keys(LENS_MM), default: "none", description: "Lens focal length (e.g. none, mm24, mm50)." },
+            lensType: { type: "string", enum: Object.keys(LENS_TYPES), default: "none", description: "Lens model/type (e.g. none, noctilux, anamorphic)." },
             tone: { type: "string", enum: Object.keys(TONES), default: "cinematic", description: "Atmospheric tone/mood." },
             colorPalette: { type: "string", enum: Object.keys(COLORS), default: "amber", description: "Color palette tone." },
             aspectRatio: { type: "string", default: "16:9", description: "Aspect ratio parameter (e.g., 16:9)." }
@@ -135,15 +147,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             age: { type: "string", default: "20s year old", description: "Age description (e.g., 20s year old, 30s year old)." },
             gender: { type: "string", default: "female", description: "Gender (e.g., female, male, person)." },
+            ethnicity: { type: "string", default: "Korean", description: "Ethnicity description (e.g. Korean, Caucasian, Black, Hispanic, Middle Eastern)." },
             composition: { type: "string", default: "close-up portrait shot, headshot", description: "Shot composition." },
             skinTexture: { type: "string", default: "dewy skin texture, glowing skin", description: "Skin texture." },
             expression: { type: "string", default: "neutral natural expression", description: "Subject expression." },
             hair: { type: "string", default: "messy bun hair style, loose strands", description: "Hair style." },
+            hairColor: { type: "string", default: "black", description: "Hair color (e.g. black, dark brown, blonde, ash gray)." },
             makeup: { type: "string", default: "minimal natural makeup look, nude tones", description: "Makeup style." },
+            pose: { type: "string", default: "", description: "Pose of the subject (e.g., arms crossed, holding product gently near chin)." },
             detail: { type: "string", default: "subtle fine lines around eyes, detailed skin pores", description: "Skin details." },
             light: { type: "string", default: "soft studio key light", description: "Lighting environment." },
             background: { type: "string", default: "solid minimalist studio backdrop", description: "Background setting." },
-            camera: { type: "string", default: "shot on Leica M11, Summilux-M 50mm f/1.4 ASPH lens", description: "Camera gear description." },
+            camera: { type: "string", default: "shot on Leica M11", description: "Camera gear description." },
+            lensType: { type: "string", default: "", description: "Lens model description (e.g. Leica Noctilux-M 50mm f/0.95 lens)." },
+            lensMm: { type: "string", default: "", description: "Lens focal length description (e.g. 50mm standard lens)." },
             customModelDesc: { type: "string", description: "Optional Korean description of clothing or pose (will be translated and compiled)." }
           }
         }
@@ -163,6 +180,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const cameraMove = args.cameraMove || 'static';
       const cameraGear = args.cameraGear || 'none';
       const lensMm = args.lensMm || 'none';
+      const lensType = args.lensType || 'none';
       const tone = args.tone || 'cinematic';
       const colorPalette = args.colorPalette || 'amber';
       const aspectRatio = args.aspectRatio || '16:9';
@@ -172,17 +190,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const cameraEn = CAMERAS[cameraMove]?.en || '';
       const gearEn = CAMERA_GEAR[cameraGear]?.en || '';
       const lensEn = LENS_MM[lensMm]?.en || '';
+      const typeEn = LENS_TYPES[lensType]?.en || '';
       const toneEn = TONES[tone]?.en || '';
       const colorEn = COLORS[colorPalette]?.en || '';
 
       const storyEn = await translateKoToEn(story);
 
-      let cameraSpec = '';
-      if (gearEn && lensEn) {
-        cameraSpec = `${gearEn} with ${lensEn}`;
-      } else {
-        cameraSpec = gearEn || lensEn || '';
-      }
+      // Assemble Camera Gear & Lens specification
+      const cameraSpec = [gearEn, typeEn, lensEn].filter(Boolean).join(', ');
 
       const gearSuffix = cameraSpec ? `, ${cameraSpec}` : '';
       const gearSentence = cameraSpec ? ` Captured with ${cameraSpec}.` : '';
@@ -226,38 +241,63 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     } else if (name === "generate_model_prompt") {
       const ageEn = args.age || '20s year old';
       const genderEn = args.gender || 'female';
+      const ethnicityEn = args.ethnicity || 'Korean';
       const compEn = args.composition || 'close-up portrait shot, headshot';
       const skinEn = args.skinTexture || 'dewy skin texture, glowing skin';
       const exprEn = args.expression || 'neutral natural expression';
-      const hairEn = args.hair || 'messy bun hair style, loose strands';
+      const hairStyleEn = args.hair || 'messy bun hair style, loose strands';
+      const hairColorEn = args.hairColor || 'black';
       const makeupEn = args.makeup || 'minimal natural makeup look, nude tones';
+      const poseEn = args.pose || '';
       const detailEn = args.detail || 'subtle fine lines around eyes, detailed skin pores';
       const lightEn = args.light || 'soft studio key light';
       const bgEn = args.background || 'solid minimalist studio backdrop';
-      const cameraEn = args.camera || 'shot on Leica M11, Summilux-M 50mm f/1.4 ASPH lens';
+      
+      const cameraEn = args.camera || 'shot on Leica M11';
+      const lensTypeEn = args.lensType || '';
+      const lensMmEn = args.lensMm || '';
+
       const customModelDesc = args.customModelDesc || '';
 
       const customDescEn = customModelDesc ? await translateKoToEn(customModelDesc) : '';
       const descPart = customDescEn ? `, ${customDescEn}` : '';
       const descPartNb = customDescEn ? `, featuring ${customDescEn}` : '';
 
+      // Assemble human subject description
+      const subjectParts = [ageEn, ethnicityEn, genderEn].filter(Boolean);
+      const subjectEn = subjectParts.join(' ') || 'person';
+
+      const posePart = poseEn ? ` in a ${poseEn}` : '';
+      const poseSentence = poseEn ? ` The subject is in a ${poseEn}.` : '';
+
+      // Assemble Hair style and color
+      let hairEn = '';
+      if (hairColorEn && hairStyleEn) {
+        hairEn = `${hairColorEn} ${hairStyleEn}`;
+      } else {
+        hairEn = hairColorEn || hairStyleEn || '';
+      }
+
+      // Assemble Camera details
+      const cameraSpec = [cameraEn, lensTypeEn, lensMmEn].filter(Boolean).join(', ');
+
       // Midjourney
-      const mj = `A raw photo of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}, ${cameraEn} --ar 16:9 --v 6.0 --style raw`;
+      const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''} --ar 16:9 --v 6.0 --style raw`;
 
       // NanoBanana
-      const nb = `A highly detailed, raw realistic photograph. The subject is a ${ageEn} ${genderEn} with a ${exprEn}${descPartNb}, featuring ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraEn} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
+      const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraSpec || 'professional camera'} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
       // ComfyUI
-      const cf = `raw photo, ${ageEn} ${genderEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraEn}, ${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
+      const cf = `raw photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraSpec ? cameraSpec + ', ' : ''}${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
 
       // ComfyUI Grok
-      const gk = `A raw portrait photograph of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}. Shot on ${cameraEn}.`;
+      const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}.`;
 
       // Seedance
-      const sd = `raw studio photo, ${ageEn} ${genderEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraEn}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
+      const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSpec || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
 
       // LTX Video
-      const lx = `A realistic commercial video clip of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}. Shot on ${cameraEn}. Photorealistic, natural motion, high-end commercial grade.`;
+      const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}. Photorealistic, natural motion, high-end commercial grade.`;
 
       return {
         content: [

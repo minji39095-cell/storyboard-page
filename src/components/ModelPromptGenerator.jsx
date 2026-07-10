@@ -121,14 +121,25 @@ const CAMERAS = [
 ];
 
 const LENS_MMS = [
-  { ko: '기본 (렌즈 미지정)', en: '' },
-  { ko: '12mm (초광각)', en: '12mm ultra-wide lens' },
-  { ko: '24mm (광각)', en: '24mm wide-angle lens' },
-  { ko: '35mm (시네 35)', en: '35mm prime lens' },
-  { ko: '50mm (표준)', en: '50mm standard lens' },
-  { ko: '85mm (인물)', en: '85mm portrait lens' },
-  { ko: '135mm (망원)', en: '135mm telephoto lens' },
-  { ko: '200mm (초망원)', en: '200mm super telephoto lens' }
+  { ko: '기본 (화각 미지정)', en: '' },
+  { ko: '12mm (초광각)', en: '12mm lens' },
+  { ko: '24mm (광각)', en: '24mm lens' },
+  { ko: '35mm (시네 35)', en: '35mm lens' },
+  { ko: '50mm (표준)', en: '50mm lens' },
+  { ko: '85mm (인물)', en: '85mm lens' },
+  { ko: '135mm (망원)', en: '135mm lens' },
+  { ko: '200mm (초망원)', en: '200mm lens' }
+];
+
+const LENS_TYPES = [
+  { ko: '기본 (렌즈종류 미지정)', en: '' },
+  { ko: 'Leica Noctilux f/0.95 (아웃포커싱)', en: 'Leica Noctilux-M 50mm f/0.95 lens' },
+  { ko: 'Zeiss Otus f/1.4 (초고해상도)', en: 'Zeiss Otus 55mm f/1.4 lens' },
+  { ko: 'Anamorphic (시네마 플레어)', en: 'anamorphic lens' },
+  { ko: 'Arri Master Prime (영화 표준)', en: 'ARRI Zeiss Master Prime lens' },
+  { ko: 'Cooke S4/i (따뜻하고 클래식)', en: 'Cooke S4/i prime lens' },
+  { ko: 'Helios 44-2 (회오리 보케)', en: 'vintage Helios 44-2 lens' },
+  { ko: 'Canon L-Series (광고 표준)', en: 'Canon L-series USM lens' }
 ];
 
 export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
@@ -146,7 +157,8 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [light, setLight] = useState('렘브란트 라이트 (명암)');
   const [background, setBackground] = useState('부드럽게 흐려진 실내');
   const [camera, setCamera] = useState('Leica M11 (라이카)');
-  const [lensMm, setLensMm] = useState('기본 (렌즈 미지정)');
+  const [lensMm, setLensMm] = useState('기본 (화각 미지정)');
+  const [lensType, setLensType] = useState('기본 (렌즈종류 미지정)');
   
   // Custom description in Korean
   const [customModelDesc, setCustomModelDesc] = useState('');
@@ -195,8 +207,10 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const detailEn = DETAILS.find(d => d.ko === detail)?.en || '';
     const lightEn = LIGHTS.find(l => l.ko === light)?.en || '';
     const bgEn = BACKGROUNDS.find(b => b.ko === background)?.en || '';
+    
     const cameraEn = CAMERAS.find(c => c.ko === camera)?.en || '';
     const lensEn = LENS_MMS.find(l => l.ko === lensMm)?.en || '';
+    const typeEn = LENS_TYPES.find(t => t.ko === lensType)?.en || '';
 
     const descPart = customDescEn ? `, ${customDescEn}` : '';
     const descPartNb = customDescEn ? `, featuring ${customDescEn}` : '';
@@ -208,12 +222,8 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const posePart = poseEn ? ` in a ${poseEn}` : '';
     const poseSentence = poseEn ? ` The subject is in a ${poseEn}.` : '';
 
-    let cameraSpec = '';
-    if (cameraEn && lensEn) {
-      cameraSpec = `${cameraEn} with ${lensEn}`;
-    } else {
-      cameraSpec = cameraEn || lensEn || '';
-    }
+    // Camera, lens type and focal length combination
+    const cameraSpec = [cameraEn, typeEn, lensEn].filter(Boolean).join(', ');
 
     // Midjourney
     const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''} --ar 16:9 --v 6.0 --style raw`;
@@ -337,7 +347,8 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
     setLight('렘브란트 라이트 (명암)');
     setBackground('부드럽게 흐려진 실내');
     setCamera('Leica M11 (라이카)');
-    setLensMm('기본 (렌즈 미지정)');
+    setLensMm('기본 (화각 미지정)');
+    setLensType('기본 (렌즈종류 미지정)');
     setCustomModelDesc('');
     
     // Defer compile so state updates process
@@ -478,12 +489,18 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           </select>
         </div>
 
-        {/* Camera Gear & Lens Focal Length (mm) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+        {/* Camera Gear, Lens Type & Lens Focal Length (mm) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>카메라 장비</label>
             <select value={camera} onChange={(e) => setCamera(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
               {CAMERAS.map(c => <option key={c.ko} value={c.ko}>{c.ko}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label style={{ fontSize: '0.65rem' }}>렌즈 종류</label>
+            <select value={lensType} onChange={(e) => setLensType(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
+              {LENS_TYPES.map(t => <option key={t.ko} value={t.ko}>{t.ko}</option>)}
             </select>
           </div>
           <div className="form-group">

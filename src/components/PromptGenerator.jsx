@@ -44,14 +44,25 @@ export const CAMERA_GEAR = {
 };
 
 export const LENS_MM = {
-  none: { ko: '기본 (렌즈 미지정)', en: '' },
-  mm12: { ko: '12mm (초광각)', en: '12mm ultra-wide lens' },
-  mm24: { ko: '24mm (광각)', en: '24mm wide-angle lens' },
-  mm35: { ko: '35mm (시네 35)', en: '35mm prime lens' },
-  mm50: { ko: '50mm (표준)', en: '50mm standard lens' },
-  mm85: { ko: '85mm (인물)', en: '85mm portrait lens' },
-  mm135: { ko: '135mm (망원)', en: '135mm telephoto lens' },
-  mm200: { ko: '200mm (초망원)', en: '200mm super telephoto lens' }
+  none: { ko: '기본 (화각 미지정)', en: '' },
+  mm12: { ko: '12mm (초광각)', en: '12mm lens' },
+  mm24: { ko: '24mm (광각)', en: '24mm lens' },
+  mm35: { ko: '35mm (시네 35)', en: '35mm lens' },
+  mm50: { ko: '50mm (표준)', en: '50mm lens' },
+  mm85: { ko: '85mm (인물)', en: '85mm lens' },
+  mm135: { ko: '135mm (망원)', en: '135mm lens' },
+  mm200: { ko: '200mm (초망원)', en: '200mm lens' }
+};
+
+export const LENS_TYPES = {
+  none: { ko: '기본 (렌즈종류 미지정)', en: '' },
+  noctilux: { ko: 'Leica Noctilux f/0.95 (아웃포커싱)', en: 'Leica Noctilux-M 50mm f/0.95 lens' },
+  otus: { ko: 'Zeiss Otus f/1.4 (초고해상도)', en: 'Zeiss Otus 55mm f/1.4 lens' },
+  anamorphic: { ko: 'Anamorphic (시네마 플레어)', en: 'anamorphic lens' },
+  master_prime: { ko: 'Arri Master Prime (영화 표준)', en: 'ARRI Zeiss Master Prime lens' },
+  cooke: { ko: 'Cooke S4/i (따뜻하고 클래식)', en: 'Cooke S4/i prime lens' },
+  helios: { ko: 'Helios 44-2 (회오리 보케)', en: 'vintage Helios 44-2 lens' },
+  canon_l: { ko: 'Canon L-Series (광고 표준)', en: 'Canon L-series USM lens' }
 };
 
 export const TONES = {
@@ -92,6 +103,7 @@ export default function PromptGenerator({
     cameraMove = 'static', 
     cameraGear = 'none',
     lensMm = 'none',
+    lensType = 'none',
     tone = 'cinematic', 
     colorPalette = 'amber', 
     aspectRatio = '16:9',
@@ -115,20 +127,16 @@ export default function PromptGenerator({
     const shotEn = SHOTS[shotType]?.en || '';
     const cameraEn = CAMERAS[cameraMove]?.en || '';
     const gearEn = CAMERA_GEAR[cameraGear]?.en || '';
-    const lensEn = LENS_MM[lensMm]?.en || '';
+    const mmEn = LENS_MM[lensMm]?.en || '';
+    const typeEn = LENS_TYPES[lensType]?.en || '';
     const toneEn = TONES[tone]?.en || '';
     const colorEn = COLORS[colorPalette]?.en || '';
 
     // Use English translated story if available, fallback to Korean story
     const storyText = storyEn || story.trim() || 'A simple scene';
 
-    // Combine gear and lens nicely
-    let cameraSpec = '';
-    if (gearEn && lensEn) {
-      cameraSpec = `${gearEn} with ${lensEn}`;
-    } else {
-      cameraSpec = gearEn || lensEn || '';
-    }
+    // Combine Gear, Lens Focal length, and Lens model
+    const cameraSpec = [gearEn, typeEn, mmEn].filter(Boolean).join(', ');
 
     const gearSuffix = cameraSpec ? `, ${cameraSpec}` : '';
     const gearSentence = cameraSpec ? ` Captured with ${cameraSpec}.` : '';
@@ -186,17 +194,18 @@ Shot Type: "${SHOTS[shotType]?.ko} (${SHOTS[shotType]?.en})"
 Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
 Camera Gear: "${CAMERA_GEAR[cameraGear]?.ko} (${CAMERA_GEAR[cameraGear]?.en})"
 Lens mm: "${LENS_MM[lensMm]?.ko} (${LENS_MM[lensMm]?.en})"
+Lens Type/Model: "${LENS_TYPES[lensType]?.ko} (${LENS_TYPES[lensType]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
 Provide a JSON object containing exactly seven fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
-2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, ending with --ar ${aspectRatio} --v 6.0, incorporating the specified camera gear and lens focal length if appropriate).
-3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, camera lens focal length, and lighting).
-4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (tags, triggers, masterpiece modifiers, camera gear and lens mm tags).
-5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags, including camera gear and lens details).
-6. "seedance": A prompt optimized for Seedance (cinematic commercial camera motion, camera gear and lens setup, color grading video tags).
-7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera lens zoom/perspective, and camera gear effects).
+2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, ending with --ar ${aspectRatio} --v 6.0, incorporating the specified camera gear, lens type and focal length).
+3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, camera lens focal length, lens model, and lighting).
+4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (tags, triggers, masterpiece modifiers, camera gear, lens type and lens mm tags).
+5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags, including camera gear, lens type and focal length details).
+6. "seedance": A prompt optimized for Seedance (cinematic commercial camera motion, camera gear and lens model setup, color grading video tags).
+7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera lens zoom/perspective, and camera gear/lens type effects).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
