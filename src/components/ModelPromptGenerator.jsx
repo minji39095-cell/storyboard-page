@@ -56,9 +56,19 @@ const HAIRS = [
   { ko: '자연스런 번 (올림머리)', en: 'messy bun hair style, loose strands' },
   { ko: '깔끔한 숏 단발', en: 'sleek short bob hair style' },
   { ko: '올백 (Slicked back)', en: 'slicked back hair style, elegant' },
-  { ko: '길고 물결치는 갈색머리', en: 'long wavy brown hair, natural flow' },
+  { ko: '길고 물결치는 머리', en: 'long wavy hair, natural flow' },
   { ko: '포니테일', en: 'neat ponytail hair style' },
   { ko: '짧은 숏컷', en: 'short cropped hair style' }
+];
+
+const HAIR_COLORS = [
+  { ko: '검은색', en: 'black' },
+  { ko: '어두운 갈색', en: 'dark brown' },
+  { ko: '금발', en: 'blonde' },
+  { ko: '애쉬 그레이', en: 'ash gray' },
+  { ko: '백발/실버', en: 'silver' },
+  { ko: '빨간색', en: 'red' },
+  { ko: '색상 미지정', en: '' }
 ];
 
 const MAKEUPS = [
@@ -66,6 +76,17 @@ const MAKEUPS = [
   { ko: '최소한의 내추럴 화장', en: 'minimal natural makeup look, nude tones' },
   { ko: '생기있는 립글로스', en: 'dewy skin with glossy lips, subtle eyeliner' },
   { ko: '세련된 스모키 메이크업', en: 'sophisticated smoky eye makeup, elegant look' }
+];
+
+const POSES = [
+  { ko: '기본 (포즈 미지정)', en: '' },
+  { ko: '정면 서 있는 자세', en: 'standing pose, looking forward' },
+  { ko: '의자에 앉아 있는 자세', en: 'sitting pose on a minimalist chair' },
+  { ko: '테이블에 기댄 자세', en: 'leaning pose against a marble table' },
+  { ko: '팔짱을 낀 자세', en: 'arms crossed pose, confident look' },
+  { ko: '제품을 턱 밑에 대고 있는 포즈', en: 'holding a cosmetic bottle gently near chin' },
+  { ko: '제품을 보여주는 포즈', en: 'holding and presenting a product to the camera' },
+  { ko: '어깨 너머로 뒤돌아보는 포즈', en: 'looking back over shoulder pose' }
 ];
 
 const DETAILS = [
@@ -118,7 +139,9 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [skinTexture, setSkinTexture] = useState('모공 질감 극대화');
   const [expression, setExpression] = useState('자연스러운 무표정');
   const [hair, setHair] = useState('자연스런 번 (올림머리)');
+  const [hairColor, setHairColor] = useState('검은색');
   const [makeup, setMakeup] = useState('화장기 없는 맨얼굴');
+  const [pose, setPose] = useState('기본 (포즈 미지정)');
   const [detail, setDetail] = useState('잔주름 및 모공 강조');
   const [light, setLight] = useState('렘브란트 라이트 (명암)');
   const [background, setBackground] = useState('부드럽게 흐려진 실내');
@@ -156,8 +179,19 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const compEn = COMPOSITIONS.find(c => c.ko === composition)?.en || '';
     const skinEn = SKIN_TEXTURES.find(s => s.ko === skinTexture)?.en || '';
     const exprEn = EXPRESSIONS.find(e => e.ko === expression)?.en || '';
-    const hairEn = HAIRS.find(h => h.ko === hair)?.en || '';
+    
+    // Combine Hair Color & Style
+    const hStyleEn = HAIRS.find(h => h.ko === hair)?.en || '';
+    const hColorEn = HAIR_COLORS.find(c => c.ko === hairColor)?.en || '';
+    let hairEn = '';
+    if (hColorEn && hStyleEn) {
+      hairEn = `${hColorEn} ${hStyleEn}`;
+    } else {
+      hairEn = hColorEn || hStyleEn || '';
+    }
+
     const makeupEn = MAKEUPS.find(m => m.ko === makeup)?.en || '';
+    const poseEn = POSES.find(p => p.ko === pose)?.en || '';
     const detailEn = DETAILS.find(d => d.ko === detail)?.en || '';
     const lightEn = LIGHTS.find(l => l.ko === light)?.en || '';
     const bgEn = BACKGROUNDS.find(b => b.ko === background)?.en || '';
@@ -171,6 +205,9 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const subjectParts = [ageEn, ethEn, genderEn].filter(Boolean);
     const subjectEn = subjectParts.join(' ') || 'person';
 
+    const posePart = poseEn ? ` in a ${poseEn}` : '';
+    const poseSentence = poseEn ? ` The subject is in a ${poseEn}.` : '';
+
     let cameraSpec = '';
     if (cameraEn && lensEn) {
       cameraSpec = `${cameraEn} with ${lensEn}`;
@@ -179,22 +216,22 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     }
 
     // Midjourney
-    const mj = `A raw photo of a ${subjectEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''} --ar 16:9 --v 6.0 --style raw`;
+    const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''} --ar 16:9 --v 6.0 --style raw`;
 
     // NanoBanana
-    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn} with a ${exprEn}${descPartNb}, featuring ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraSpec || 'professional camera'} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraSpec || 'professional camera'} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
     // ComfyUI
-    const cf = `raw photo, ${subjectEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraSpec ? cameraSpec + ', ' : ''}${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
+    const cf = `raw photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraSpec ? cameraSpec + ', ' : ''}${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
 
     // ComfyUI Grok
-    const gk = `A raw portrait photograph of a ${subjectEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}.`;
+    const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}.`;
 
     // Seedance
-    const sd = `raw studio photo, ${subjectEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSpec || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
+    const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSpec || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
 
     // LTX Video
-    const lx = `A realistic commercial video clip of a ${subjectEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}. Photorealistic, natural motion, high-end commercial grade.`;
+    const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}. Photorealistic, natural motion, high-end commercial grade.`;
 
     return { mj, nb, cf, gk, sd, lx };
   };
@@ -293,7 +330,9 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
     setSkinTexture('모공 질감 극대화');
     setExpression('자연스러운 무표정');
     setHair('자연스런 번 (올림머리)');
+    setHairColor('검은색');
     setMakeup('화장기 없는 맨얼굴');
+    setPose('기본 (포즈 미지정)');
     setDetail('잔주름 및 모공 강조');
     setLight('렘브란트 라이트 (명암)');
     setBackground('부드럽게 흐려진 실내');
@@ -379,8 +418,8 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           </div>
         </div>
 
-        {/* Expression & Hair */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+        {/* Expression, Hair Style & Hair Color */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>표정</label>
             <select value={expression} onChange={(e) => setExpression(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
@@ -393,16 +432,31 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
               {HAIRS.map(h => <option key={h.ko} value={h.ko}>{h.ko}</option>)}
             </select>
           </div>
+          <div className="form-group">
+            <label style={{ fontSize: '0.65rem' }}>헤어 컬러</label>
+            <select value={hairColor} onChange={(e) => setHairColor(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
+              {HAIR_COLORS.map(c => <option key={c.ko} value={c.ko}>{c.ko}</option>)}
+            </select>
+          </div>
         </div>
 
-        {/* Makeup & Details */}
-        <div className="form-group">
-          <label style={{ fontSize: '0.65rem' }}>메이크업</label>
-          <select value={makeup} onChange={(e) => setMakeup(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
-            {MAKEUPS.map(m => <option key={m.ko} value={m.ko}>{m.ko}</option>)}
-          </select>
+        {/* Makeup & Pose */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+          <div className="form-group">
+            <label style={{ fontSize: '0.65rem' }}>메이크업</label>
+            <select value={makeup} onChange={(e) => setMakeup(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
+              {MAKEUPS.map(m => <option key={m.ko} value={m.ko}>{m.ko}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label style={{ fontSize: '0.65rem' }}>포즈</label>
+            <select value={pose} onChange={(e) => setPose(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
+              {POSES.map(p => <option key={p.ko} value={p.ko}>{p.ko}</option>)}
+            </select>
+          </div>
         </div>
 
+        {/* Details, Lighting & Background */}
         <div className="form-group">
           <label style={{ fontSize: '0.65rem' }}>세부 디테일 강조</label>
           <select value={detail} onChange={(e) => setDetail(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
@@ -410,7 +464,6 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           </select>
         </div>
 
-        {/* Lighting & Background */}
         <div className="form-group">
           <label style={{ fontSize: '0.65rem' }}>조명 설정</label>
           <select value={light} onChange={(e) => setLight(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
