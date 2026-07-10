@@ -529,8 +529,8 @@ Provide ONLY the final script text. Do not include any explanations, code block 
           </div>
         </div>
 
-        {/* Shot Type & Camera Move & Camera Gear & Lens MM */}
-        <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
+        {/* Shot Type & Camera Move */}
+        <div className="form-row">
           <div className="form-group">
             <label>카메라 샷 크기</label>
             <select
@@ -553,6 +553,10 @@ Provide ONLY the final script text. Do not include any explanations, code block 
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Camera Gear & Lens MM */}
+        <div className="form-row">
           <div className="form-group">
             <label>카메라 장비</label>
             <select
