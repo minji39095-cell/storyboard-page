@@ -555,8 +555,8 @@ Provide ONLY the final script text. Do not include any explanations, code block 
           </div>
         </div>
 
-        {/* Camera Gear, Lens MM & Lens Type */}
-        <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+        {/* Camera Gear & Lens MM */}
+        <div className="form-row">
           <div className="form-group">
             <label>카메라 장비</label>
             <select
@@ -579,17 +579,20 @@ Provide ONLY the final script text. Do not include any explanations, code block 
               ))}
             </select>
           </div>
-          <div className="form-group">
-            <label>렌즈 종류</label>
-            <select
-              value={frame.lensType || 'none'}
-              onChange={(e) => handleUpdate({ lensType: e.target.value })}
-            >
-              {Object.entries(LENS_TYPES).map(([key, val]) => (
-                <option key={key} value={key}>{val.ko}</option>
-              ))}
-            </select>
-          </div>
+        </div>
+
+        {/* Lens Type (Full Width) */}
+        <div className="form-group">
+          <label>렌즈 종류</label>
+          <select
+            value={frame.lensType || 'none'}
+            onChange={(e) => handleUpdate({ lensType: e.target.value })}
+            style={{ width: '100%' }}
+          >
+            {Object.entries(LENS_TYPES).map(([key, val]) => (
+              <option key={key} value={key}>{val.ko}</option>
+            ))}
+          </select>
         </div>
 
         {/* Mood/Tone & Colors */}

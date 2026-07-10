@@ -391,8 +391,8 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
-        {/* Age, Gender & Ethnicity */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+        {/* Row 1: Age & Gender (2 columns) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>연령대</label>
             <select value={age} onChange={(e) => setAge(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
@@ -405,38 +405,42 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
               {GENDERS.map(g => <option key={g.ko} value={g.ko}>{g.ko}</option>)}
             </select>
           </div>
+        </div>
+
+        {/* Row 2: Ethnicity & Composition (2 columns) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>인종</label>
             <select value={ethnicity} onChange={(e) => setEthnicity(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
               {ETHNICITIES.map(et => <option key={et.ko} value={et.ko}>{et.ko}</option>)}
             </select>
           </div>
-        </div>
-
-        {/* Composition & Skin */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>구도 / 앵글</label>
             <select value={composition} onChange={(e) => setComposition(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
               {COMPOSITIONS.map(c => <option key={c.ko} value={c.ko}>{c.ko}</option>)}
             </select>
           </div>
+        </div>
+
+        {/* Row 3: Skin Texture & Expression (2 columns) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>피부 질감</label>
             <select value={skinTexture} onChange={(e) => setSkinTexture(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
               {SKIN_TEXTURES.map(s => <option key={s.ko} value={s.ko}>{s.ko}</option>)}
             </select>
           </div>
-        </div>
-
-        {/* Expression, Hair Style & Hair Color */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>표정</label>
             <select value={expression} onChange={(e) => setExpression(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
               {EXPRESSIONS.map(e => <option key={e.ko} value={e.ko}>{e.ko}</option>)}
             </select>
           </div>
+        </div>
+
+        {/* Row 4: Hair Style & Hair Color (2 columns) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>헤어 스타일</label>
             <select value={hair} onChange={(e) => setHair(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
@@ -451,7 +455,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           </div>
         </div>
 
-        {/* Makeup & Pose */}
+        {/* Row 5: Makeup & Lighting (2 columns) */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>메이크업</label>
@@ -460,47 +464,43 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
             </select>
           </div>
           <div className="form-group">
-            <label style={{ fontSize: '0.65rem' }}>포즈</label>
-            <select value={pose} onChange={(e) => setPose(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
-              {POSES.map(p => <option key={p.ko} value={p.ko}>{p.ko}</option>)}
+            <label style={{ fontSize: '0.65rem' }}>조명 설정</label>
+            <select value={light} onChange={(e) => setLight(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
+              {LIGHTS.map(l => <option key={l.ko} value={l.ko}>{l.ko}</option>)}
             </select>
           </div>
         </div>
 
-        {/* Details, Lighting & Background */}
+        {/* Row 6: Pose (1 column - Full width since poses can have long descriptions) */}
         <div className="form-group">
-          <label style={{ fontSize: '0.65rem' }}>세부 디테일 강조</label>
-          <select value={detail} onChange={(e) => setDetail(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
-            {DETAILS.map(d => <option key={d.ko} value={d.ko}>{d.ko}</option>)}
+          <label style={{ fontSize: '0.65rem' }}>포즈</label>
+          <select value={pose} onChange={(e) => setPose(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%' }}>
+            {POSES.map(p => <option key={p.ko} value={p.ko}>{p.ko}</option>)}
           </select>
         </div>
 
-        <div className="form-group">
-          <label style={{ fontSize: '0.65rem' }}>조명 설정</label>
-          <select value={light} onChange={(e) => setLight(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
-            {LIGHTS.map(l => <option key={l.ko} value={l.ko}>{l.ko}</option>)}
-          </select>
-        </div>
-
+        {/* Row 7: Background (1 column - Full width) */}
         <div className="form-group">
           <label style={{ fontSize: '0.65rem' }}>배경</label>
-          <select value={background} onChange={(e) => setBackground(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
+          <select value={background} onChange={(e) => setBackground(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%' }}>
             {BACKGROUNDS.map(b => <option key={b.ko} value={b.ko}>{b.ko}</option>)}
           </select>
         </div>
 
-        {/* Camera Gear, Lens Type & Lens Focal Length (mm) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+        {/* Row 8: Detail (1 column - Full width) */}
+        <div className="form-group">
+          <label style={{ fontSize: '0.65rem' }}>세부 디테일 강조</label>
+          <select value={detail} onChange={(e) => setDetail(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%' }}>
+            {DETAILS.map(d => <option key={d.ko} value={d.ko}>{d.ko}</option>)}
+          </select>
+        </div>
+
+        {/* Row 9: Camera Gear & Lens mm (2 columns) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>카메라 장비</label>
             <select value={camera} onChange={(e) => setCamera(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
               {CAMERAS.map(c => <option key={c.ko} value={c.ko}>{c.ko}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label style={{ fontSize: '0.65rem' }}>렌즈 종류</label>
-            <select value={lensType} onChange={(e) => setLensType(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
-              {LENS_TYPES.map(t => <option key={t.ko} value={t.ko}>{t.ko}</option>)}
             </select>
           </div>
           <div className="form-group">
@@ -509,6 +509,14 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
               {LENS_MMS.map(l => <option key={l.ko} value={l.ko}>{l.ko}</option>)}
             </select>
           </div>
+        </div>
+
+        {/* Row 10: Lens Type (1 column - Full width since lens models have extremely long text) */}
+        <div className="form-group">
+          <label style={{ fontSize: '0.65rem' }}>렌즈 종류</label>
+          <select value={lensType} onChange={(e) => setLensType(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%' }}>
+            {LENS_TYPES.map(t => <option key={t.ko} value={t.ko}>{t.ko}</option>)}
+          </select>
         </div>
 
         {/* Custom model description (Translates!) */}
