@@ -16,6 +16,17 @@ const GENDERS = [
   { ko: '성별 없음', en: 'person' }
 ];
 
+const ETHNICITIES = [
+  { ko: '한국인', en: 'Korean' },
+  { ko: '동아시아인', en: 'East Asian' },
+  { ko: '백인', en: 'Caucasian' },
+  { ko: '흑인', en: 'Black' },
+  { ko: '히스패닉', en: 'Hispanic' },
+  { ko: '남아시아인', en: 'South Asian' },
+  { ko: '중동계', en: 'Middle Eastern' },
+  { ko: '인종 미지정', en: '' }
+];
+
 const COMPOSITIONS = [
   { ko: '클로즈업 (얼굴 위주)', en: 'close-up portrait shot, headshot' },
   { ko: '바스트 샷 (가슴 위)', en: 'bust shot portrait' },
@@ -102,6 +113,7 @@ const LENS_MMS = [
 export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [age, setAge] = useState('20대');
   const [gender, setGender] = useState('여성');
+  const [ethnicity, setEthnicity] = useState('한국인');
   const [composition, setComposition] = useState('클로즈업 (얼굴 위주)');
   const [skinTexture, setSkinTexture] = useState('모공 질감 극대화');
   const [expression, setExpression] = useState('자연스러운 무표정');
@@ -140,6 +152,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const compileLocalPrompts = (customDescEn = '') => {
     const ageEn = AGES.find(a => a.ko === age)?.en || '';
     const genderEn = GENDERS.find(g => g.ko === gender)?.en || '';
+    const ethEn = ETHNICITIES.find(e => e.ko === ethnicity)?.en || '';
     const compEn = COMPOSITIONS.find(c => c.ko === composition)?.en || '';
     const skinEn = SKIN_TEXTURES.find(s => s.ko === skinTexture)?.en || '';
     const exprEn = EXPRESSIONS.find(e => e.ko === expression)?.en || '';
@@ -154,6 +167,10 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const descPart = customDescEn ? `, ${customDescEn}` : '';
     const descPartNb = customDescEn ? `, featuring ${customDescEn}` : '';
 
+    // Assembled human subject description: "20s year old Korean female"
+    const subjectParts = [ageEn, ethEn, genderEn].filter(Boolean);
+    const subjectEn = subjectParts.join(' ') || 'person';
+
     let cameraSpec = '';
     if (cameraEn && lensEn) {
       cameraSpec = `${cameraEn} with ${lensEn}`;
@@ -162,22 +179,22 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     }
 
     // Midjourney
-    const mj = `A raw photo of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''} --ar 16:9 --v 6.0 --style raw`;
+    const mj = `A raw photo of a ${subjectEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''} --ar 16:9 --v 6.0 --style raw`;
 
     // NanoBanana
-    const nb = `A highly detailed, raw realistic photograph. The subject is a ${ageEn} ${genderEn} with a ${exprEn}${descPartNb}, featuring ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraSpec || 'professional camera'} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn} with a ${exprEn}${descPartNb}, featuring ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraSpec || 'professional camera'} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
     // ComfyUI
-    const cf = `raw photo, ${ageEn} ${genderEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraSpec ? cameraSpec + ', ' : ''}${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
+    const cf = `raw photo, ${subjectEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraSpec ? cameraSpec + ', ' : ''}${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
 
     // ComfyUI Grok
-    const gk = `A raw portrait photograph of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}.`;
+    const gk = `A raw portrait photograph of a ${subjectEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}.`;
 
     // Seedance
-    const sd = `raw studio photo, ${ageEn} ${genderEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSpec || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
+    const sd = `raw studio photo, ${subjectEn}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSpec || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
 
     // LTX Video
-    const lx = `A realistic commercial video clip of a ${ageEn} ${genderEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}. Photorealistic, natural motion, high-end commercial grade.`;
+    const lx = `A realistic commercial video clip of a ${subjectEn}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}. Photorealistic, natural motion, high-end commercial grade.`;
 
     return { mj, nb, cf, gk, sd, lx };
   };
@@ -269,22 +286,39 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
   }, []);
 
   const handleResetCustomPrompts = () => {
-    const initial = compileLocalPrompts();
-    setPrompts(initial);
-    setCustomMjPrompt(initial.mj);
-    setCustomNbPrompt(initial.nb);
-    setCustomCfPrompt(initial.cf);
-    setCustomGkPrompt(initial.gk);
-    setCustomSdPrompt(initial.sd);
-    setCustomLxPrompt(initial.lx);
-    setIsMjEdited(false);
-    setIsNbEdited(false);
-    setIsCfEdited(false);
-    setIsGkEdited(false);
-    setIsSdEdited(false);
-    setIsLxEdited(false);
+    setAge('20대');
+    setGender('여성');
+    setEthnicity('한국인');
+    setComposition('클로즈업 (얼굴 위주)');
+    setSkinTexture('모공 질감 극대화');
+    setExpression('자연스러운 무표정');
+    setHair('자연스런 번 (올림머리)');
+    setMakeup('화장기 없는 맨얼굴');
+    setDetail('잔주름 및 모공 강조');
+    setLight('렘브란트 라이트 (명암)');
+    setBackground('부드럽게 흐려진 실내');
+    setCamera('Leica M11 (라이카)');
+    setLensMm('기본 (렌즈 미지정)');
     setCustomModelDesc('');
-    showToast('기본 프롬프트로 초기화되었습니다.');
+    
+    // Defer compile so state updates process
+    setTimeout(() => {
+      const initial = compileLocalPrompts();
+      setPrompts(initial);
+      setCustomMjPrompt(initial.mj);
+      setCustomNbPrompt(initial.nb);
+      setCustomCfPrompt(initial.cf);
+      setCustomGkPrompt(initial.gk);
+      setCustomSdPrompt(initial.sd);
+      setCustomLxPrompt(initial.lx);
+      setIsMjEdited(false);
+      setIsNbEdited(false);
+      setIsCfEdited(false);
+      setIsGkEdited(false);
+      setIsSdEdited(false);
+      setIsLxEdited(false);
+      showToast('기본 프롬프트로 초기화되었습니다.');
+    }, 50);
   };
 
   const copyToClipboard = (text, type) => {
@@ -307,8 +341,8 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
-        {/* Age & Gender */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+        {/* Age, Gender & Ethnicity */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
           <div className="form-group">
             <label style={{ fontSize: '0.65rem' }}>연령대</label>
             <select value={age} onChange={(e) => setAge(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
@@ -319,6 +353,12 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
             <label style={{ fontSize: '0.65rem' }}>성별</label>
             <select value={gender} onChange={(e) => setGender(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
               {GENDERS.map(g => <option key={g.ko} value={g.ko}>{g.ko}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label style={{ fontSize: '0.65rem' }}>인종</label>
+            <select value={ethnicity} onChange={(e) => setEthnicity(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem' }}>
+              {ETHNICITIES.map(et => <option key={et.ko} value={et.ko}>{et.ko}</option>)}
             </select>
           </div>
         </div>
