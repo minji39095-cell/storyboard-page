@@ -12,6 +12,10 @@ const AD_PRESETS = {
         story: '아침 햇살이 비치는 하얀 대리석 욕실, 제품 용기에 이슬이 맺혀 있다. 에센스 제형이 한 방울 떨어지는 찰나가 고속 슬로우 모션으로 포착되고, 건강한 피부 톤의 모델이 청량하게 숲을 보며 미소 짓는다.',
         stylePreset: 'highend_ad',
         shotType: 'cu',
+        cameraMove: 'static',
+        cameraGear: 'leica',
+        lensMm: 'mm85',
+        lensType: 'noctilux',
         tone: 'bright',
         colorPalette: 'pastel'
       },
@@ -20,6 +24,10 @@ const AD_PRESETS = {
         story: '물결이 출렁이는 맑고 깊은 수중 배경. 수분 크림 용기가 회전하며 부드럽게 상승하고, 수분 캡슐이 터지는 그래픽이 겹쳐진다.',
         stylePreset: 'cinematic',
         shotType: 'ms',
+        cameraMove: 'zoomin',
+        cameraGear: 'arri',
+        lensMm: 'mm50',
+        lensType: 'anamorphic',
         tone: 'dreamy',
         colorPalette: 'blue'
       }
@@ -33,6 +41,10 @@ const AD_PRESETS = {
         story: '어두운 밤, 네온 컬러 조명이 들어온 도심 로드. 모델이 숨을 헐떡이며 달리고 있으며, 손목의 워치 페이스 스크린이 요동치는 심박 센서를 그래픽으로 보여준다.',
         stylePreset: 'highend_ad',
         shotType: 'ms',
+        cameraMove: 'tracking',
+        cameraGear: 'sony',
+        lensMm: 'mm35',
+        lensType: 'canon_l',
         tone: 'dark',
         colorPalette: 'cyberpunk'
       },
@@ -41,6 +53,10 @@ const AD_PRESETS = {
         story: '바쁜 지하철 내부의 소음. 모델이 헤드폰을 착용하고 노이즈캔슬링 버튼을 터치하는 순간, 주변 승객들의 이미지가 부드럽게 아웃포커싱 되며 고요함 속 오아시스가 흐르는 듯한 몽환적인 숲 이미지로 서서히 전환된다.',
         stylePreset: 'cinematic',
         shotType: 'cu',
+        cameraMove: 'static',
+        cameraGear: 'arri',
+        lensMm: 'mm50',
+        lensType: 'master_prime',
         tone: 'dreamy',
         colorPalette: 'natural'
       }
@@ -54,6 +70,10 @@ const AD_PRESETS = {
         story: '얼음이 깨지며 사방으로 파편이 튀고, 시원한 탄산수가 잔 가득 부어지는 극단적인 클로즈업. 솟구치는 기포들이 초고속 카메라 질감으로 깨끗하게 담긴다.',
         stylePreset: 'cinematic',
         shotType: 'ecu',
+        cameraMove: 'static',
+        cameraGear: 'fujifilm',
+        lensMm: 'mm135',
+        lensType: 'otus',
         tone: 'bright',
         colorPalette: 'blue'
       },
@@ -62,6 +82,10 @@ const AD_PRESETS = {
         story: '부드러운 황금빛 조명 아래, 뜨거운 물이 필터를 지나며 커피 에센스가 한 방울씩 떨어지는 평화롭고 고급스러운 커피 전문 컷.',
         stylePreset: 'highend_ad',
         shotType: 'cu',
+        cameraMove: 'static',
+        cameraGear: 'hasselblad',
+        lensMm: 'mm85',
+        lensType: 'cooke',
         tone: 'sad',
         colorPalette: 'amber'
       }
@@ -75,6 +99,10 @@ const AD_PRESETS = {
         story: '조명이 비치는 세련된 콘크리트 전시장 벽면. 모델이 시크하게 가방을 들고 걸어가며, 가방 가죽의 부드러운 하이라이트 질감과 금속 장식이 정밀하게 비춰진다.',
         stylePreset: 'highend_ad',
         shotType: 'ls',
+        cameraMove: 'pan',
+        cameraGear: 'hasselblad',
+        lensMm: 'mm35',
+        lensType: 'otus',
         tone: 'cinematic',
         colorPalette: 'highcontrast'
       }
@@ -185,6 +213,10 @@ export default function StoryboardFrame({
       story: concept.story,
       stylePreset: concept.stylePreset,
       shotType: concept.shotType,
+      cameraMove: concept.cameraMove || 'static',
+      cameraGear: concept.cameraGear || 'none',
+      lensMm: concept.lensMm || 'none',
+      lensType: concept.lensType || 'none',
       tone: concept.tone,
       colorPalette: concept.colorPalette || 'amber'
     });

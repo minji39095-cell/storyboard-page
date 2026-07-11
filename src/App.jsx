@@ -355,8 +355,11 @@ For each scene cut, return exactly:
 3. "stylePreset": Select one of: cinematic, highend_ad, anime, webtoon, disney3d, concept, lineart, pencil.
 4. "shotType": Select one of: ecu, cu, ms, bs, fs, ls, ha, la, oh.
 5. "cameraMove": Select one of: static, pan, tilt, zoomin, zoomout, tracking.
-6. "tone": Select one of: dreamy, cinematic, dark, bright, sad, suspense, retro.
-7. "colorPalette": Select one of: amber, blue, monochrome, cyberpunk, pastel, highcontrast, natural.
+6. "cameraGear": Select one of: none, hasselblad, leica, fujifilm, sony, canon, arri.
+7. "lensMm": Select one of: none, mm12, mm24, mm35, mm50, mm85, mm135, mm200.
+8. "lensType": Select one of: none, noctilux, otus, anamorphic, master_prime, cooke, helios, canon_l.
+9. "tone": Select one of: dreamy, cinematic, dark, bright, sad, suspense, retro.
+10. "colorPalette": Select one of: amber, blue, monochrome, cyberpunk, pastel, highcontrast, natural.
 
 Return the result as a JSON array of exactly ${generatorNumCuts} objects. Do not write markdown wraps like \`\`\`json.`;
 
@@ -419,6 +422,9 @@ Return the result as a JSON array of exactly ${generatorNumCuts} objects. Do not
           stylePreset: cut.stylePreset || 'highend_ad',
           shotType: cut.shotType || 'ms',
           cameraMove: cut.cameraMove || 'static',
+          cameraGear: cut.cameraGear || 'none',
+          lensMm: cut.lensMm || 'none',
+          lensType: cut.lensType || 'none',
           tone: cut.tone || 'cinematic',
           colorPalette: cut.colorPalette || 'amber',
           aspectRatio: '16:9',
