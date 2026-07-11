@@ -183,6 +183,80 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [isSdEdited, setIsSdEdited] = useState(false);
   const [isLxEdited, setIsLxEdited] = useState(false);
 
+  const buildCinematicCameraDescription = (gear, lensMm, lensType) => {
+    const cameraNames = {
+      hasselblad: 'a Hasselblad H6D-100c medium format camera',
+      leica: 'a Leica M11 rangefinder camera',
+      fujifilm: 'a Fujifilm GFX 100S medium format camera',
+      sony: 'a Sony a7R V mirrorless camera',
+      canon: 'a Canon EOS R5 mirrorless camera',
+      arri: 'an ARRI ALEXA Mini LF cinema camera'
+    };
+
+    const lensMmNames = {
+      mm12: '12mm ultra-wide angle',
+      mm24: '24mm wide-angle',
+      mm35: '35mm prime',
+      mm50: '50mm standard prime',
+      mm85: '85mm portrait prime',
+      mm135: '135mm telephoto prime',
+      mm200: '200mm super-telephoto prime'
+    };
+
+    const lensTypeNames = {
+      noctilux: 'Leica Noctilux-M 50mm f/0.95 lens',
+      otus: 'Zeiss Otus 55mm f/1.4 lens',
+      anamorphic: 'anamorphic lens',
+      master_prime: 'ARRI Zeiss Master Prime lens',
+      cooke: 'Cooke S4/i prime lens',
+      helios: 'vintage Helios 44-2 lens',
+      canon_l: 'Canon L-series USM lens'
+    };
+
+    const lensEffects = {
+      noctilux: 'exhibiting extremely shallow depth of field, creamy background bokeh, and painterly out-of-focus falloff',
+      otus: 'capturing surgical sharpness, ultra-high resolution details, and perfect chromatic aberration control',
+      anamorphic: 'delivering cinematic widescreen perspective, signature horizontal blue lens flares, and oval bokeh',
+      master_prime: 'with crisp contrast, organic rendering, and pristine high-end Hollywood film aesthetics',
+      cooke: 'producing the famous "Cooke Look" with warm skin tones, gentle roll-off, and classic vintage rendering',
+      helios: 'exhibiting distinct swirly bokeh patterns, dreamlike light leaks, and vintage analog character',
+      canon_l: 'rendering rich professional contrast, high resolution, and vibrant commercial color accuracy'
+    };
+
+    const cameraBrand = cameraNames[gear];
+    const mmText = lensMmNames[lensMm];
+    const lensTypeName = lensTypeNames[lensType];
+    const effectText = lensEffects[lensType];
+
+    if (!cameraBrand && !mmText && !lensTypeName) {
+      return '';
+    }
+
+    if (cameraBrand && mmText && lensTypeName) {
+      return `Shot on ${cameraBrand} paired with a ${mmText} ${lensTypeName}, ${effectText}`;
+    }
+    if (cameraBrand && lensTypeName) {
+      return `Shot on ${cameraBrand} equipped with a ${lensTypeName}, ${effectText}`;
+    }
+    if (cameraBrand && mmText) {
+      return `Shot on ${cameraBrand} using a professional ${mmText} lens for precise focal perspective`;
+    }
+    if (cameraBrand) {
+      return `Shot on ${cameraBrand} for professional studio photographic quality`;
+    }
+    if (lensTypeName && mmText) {
+      return `Captured using a ${mmText} ${lensTypeName}, ${effectText}`;
+    }
+    if (lensTypeName) {
+      return `Captured using a ${lensTypeName}, ${effectText}`;
+    }
+    if (mmText) {
+      return `Shot with a professional ${mmText} lens for clean optical composition`;
+    }
+
+    return '';
+  };
+
   // Fallback compiler
   const compileLocalPrompts = (customDescEn = '') => {
     const ageEn = AGES.find(a => a.ko === age)?.en || '';
@@ -207,10 +281,42 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const detailEn = DETAILS.find(d => d.ko === detail)?.en || '';
     const lightEn = LIGHTS.find(l => l.ko === light)?.en || '';
     const bgEn = BACKGROUNDS.find(b => b.ko === background)?.en || '';
-    
-    const cameraEn = CAMERAS.find(c => c.ko === camera)?.en || '';
-    const lensEn = LENS_MMS.find(l => l.ko === lensMm)?.en || '';
-    const typeEn = LENS_TYPES.find(t => t.ko === lensType)?.en || '';
+
+    // Map selected options to keys
+    const cameraMap = {
+      'Hasselblad H6D (중형)': 'hasselblad',
+      'Leica M11 (라이카)': 'leica',
+      'Fujifilm GFX (후지)': 'fujifilm',
+      'Sony a7R V (소니)': 'sony',
+      'Canon EOS R5 (캐논)': 'canon',
+      'Arri Alexa Mini (시네마)': 'arri'
+    };
+
+    const lensMmMap = {
+      '12mm (초광각)': 'mm12',
+      '24mm (광각)': 'mm24',
+      '35mm (시네 35)': 'mm35',
+      '50mm (표준)': 'mm50',
+      '85mm (인물)': 'mm85',
+      '135mm (망원)': 'mm135',
+      '200mm (초망원)': 'mm200'
+    };
+
+    const lensTypeMap = {
+      'Leica Noctilux f/0.95 (아웃포커싱)': 'noctilux',
+      'Zeiss Otus f/1.4 (초고해상도)': 'otus',
+      'Anamorphic (시네마 플레어)': 'anamorphic',
+      'Arri Master Prime (영화 표준)': 'master_prime',
+      'Cooke S4/i (따뜻하고 클래식)': 'cooke',
+      'Helios 44-2 (회오리 보케)': 'helios',
+      'Canon L-Series (광고 표준)': 'canon_l'
+    };
+
+    const gearKey = cameraMap[camera] || 'none';
+    const mmKey = lensMmMap[lensMm] || 'none';
+    const typeKey = lensTypeMap[lensType] || 'none';
+
+    const cameraSentence = buildCinematicCameraDescription(gearKey, mmKey, typeKey);
 
     const descPart = customDescEn ? `, ${customDescEn}` : '';
     const descPartNb = customDescEn ? `, featuring ${customDescEn}` : '';
@@ -222,26 +328,25 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const posePart = poseEn ? ` in a ${poseEn}` : '';
     const poseSentence = poseEn ? ` The subject is in a ${poseEn}.` : '';
 
-    // Camera, lens type and focal length combination
-    const cameraSpec = [cameraEn, typeEn, lensEn].filter(Boolean).join(', ');
+    const cameraSuffix = cameraSentence ? `, ${cameraSentence}` : '';
 
     // Midjourney
-    const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''} --ar 16:9 --v 6.0 --style raw`;
+    const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSuffix} --ar 16:9 --v 6.0 --style raw`;
 
     // NanoBanana
-    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. Captured on a ${cameraSpec || 'professional camera'} under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. ${cameraSentence || 'Shot on a professional camera'}. Captured under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
     // ComfyUI
-    const cf = `raw photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraSpec ? cameraSpec + ', ' : ''}${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
+    const cf = `raw photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraSentence ? cameraSentence + ', ' : ''}${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
 
     // ComfyUI Grok
-    const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}.`;
+    const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}. Camera setup: ${cameraSentence || 'professional studio quality'}.`;
 
     // Seedance
-    const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSpec || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
+    const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSentence || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
 
     // LTX Video
-    const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSpec ? ', ' + cameraSpec : ''}. Photorealistic, natural motion, high-end commercial grade.`;
+    const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSuffix}. Photorealistic, natural motion, high-end commercial grade.`;
 
     return { mj, nb, cf, gk, sd, lx };
   };

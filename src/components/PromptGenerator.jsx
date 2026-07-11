@@ -121,25 +121,93 @@ export default function PromptGenerator({
     isLxEdited = false
   } = frame;
 
+  const buildCinematicCameraDescription = (gear, lensMm, lensType) => {
+    const cameraNames = {
+      hasselblad: 'a Hasselblad H6D-100c medium format camera',
+      leica: 'a Leica M11 rangefinder camera',
+      fujifilm: 'a Fujifilm GFX 100S medium format camera',
+      sony: 'a Sony a7R V mirrorless camera',
+      canon: 'a Canon EOS R5 mirrorless camera',
+      arri: 'an ARRI ALEXA Mini LF cinema camera'
+    };
+
+    const lensMmNames = {
+      mm12: '12mm ultra-wide angle',
+      mm24: '24mm wide-angle',
+      mm35: '35mm prime',
+      mm50: '50mm standard prime',
+      mm85: '85mm portrait prime',
+      mm135: '135mm telephoto prime',
+      mm200: '200mm super-telephoto prime'
+    };
+
+    const lensTypeNames = {
+      noctilux: 'Leica Noctilux-M 50mm f/0.95 lens',
+      otus: 'Zeiss Otus 55mm f/1.4 lens',
+      anamorphic: 'anamorphic lens',
+      master_prime: 'ARRI Zeiss Master Prime lens',
+      cooke: 'Cooke S4/i prime lens',
+      helios: 'vintage Helios 44-2 lens',
+      canon_l: 'Canon L-series USM lens'
+    };
+
+    const lensEffects = {
+      noctilux: 'exhibiting extremely shallow depth of field, creamy background bokeh, and painterly out-of-focus falloff',
+      otus: 'capturing surgical sharpness, ultra-high resolution details, and perfect chromatic aberration control',
+      anamorphic: 'delivering cinematic widescreen perspective, signature horizontal blue lens flares, and oval bokeh',
+      master_prime: 'with crisp contrast, organic rendering, and pristine high-end Hollywood film aesthetics',
+      cooke: 'producing the famous "Cooke Look" with warm skin tones, gentle roll-off, and classic vintage rendering',
+      helios: 'exhibiting distinct swirly bokeh patterns, dreamlike light leaks, and vintage analog character',
+      canon_l: 'rendering rich professional contrast, high resolution, and vibrant commercial color accuracy'
+    };
+
+    const cameraBrand = cameraNames[gear];
+    const mmText = lensMmNames[lensMm];
+    const lensTypeName = lensTypeNames[lensType];
+    const effectText = lensEffects[lensType];
+
+    if (!cameraBrand && !mmText && !lensTypeName) {
+      return '';
+    }
+
+    if (cameraBrand && mmText && lensTypeName) {
+      return `Shot on ${cameraBrand} paired with a ${mmText} ${lensTypeName}, ${effectText}`;
+    }
+    if (cameraBrand && lensTypeName) {
+      return `Shot on ${cameraBrand} equipped with a ${lensTypeName}, ${effectText}`;
+    }
+    if (cameraBrand && mmText) {
+      return `Shot on ${cameraBrand} using a professional ${mmText} lens for precise focal perspective`;
+    }
+    if (cameraBrand) {
+      return `Shot on ${cameraBrand} for professional studio photographic quality`;
+    }
+    if (lensTypeName && mmText) {
+      return `Captured using a ${mmText} ${lensTypeName}, ${effectText}`;
+    }
+    if (lensTypeName) {
+      return `Captured using a ${lensTypeName}, ${effectText}`;
+    }
+    if (mmText) {
+      return `Shot with a professional ${mmText} lens for clean optical composition`;
+    }
+
+    return '';
+  };
+
   // Local compiler when AI is not used
   const compileLocalPrompts = () => {
     const styleEn = STYLES[stylePreset]?.en || '';
     const shotEn = SHOTS[shotType]?.en || '';
     const cameraEn = CAMERAS[cameraMove]?.en || '';
-    const gearEn = CAMERA_GEAR[cameraGear]?.en || '';
-    const mmEn = LENS_MM[lensMm]?.en || '';
-    const typeEn = LENS_TYPES[lensType]?.en || '';
     const toneEn = TONES[tone]?.en || '';
     const colorEn = COLORS[colorPalette]?.en || '';
-
-    // Use English translated story if available, fallback to Korean story
     const storyText = storyEn || story.trim() || 'A simple scene';
 
-    // Combine Gear, Lens Focal length, and Lens model
-    const cameraSpec = [gearEn, typeEn, mmEn].filter(Boolean).join(', ');
-
-    const gearSuffix = cameraSpec ? `, ${cameraSpec}` : '';
-    const gearSentence = cameraSpec ? ` Captured with ${cameraSpec}.` : '';
+    // Build the natural cinematography grammar sentence
+    const cameraSentence = buildCinematicCameraDescription(cameraGear, lensMm, lensType);
+    const gearSuffix = cameraSentence ? `, ${cameraSentence}` : '';
+    const gearSentence = cameraSentence ? ` ${cameraSentence}.` : '';
 
     // Midjourney
     const mj = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
@@ -151,7 +219,7 @@ export default function PromptGenerator({
     const cf = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix}, highly detailed, masterpiece, sharp focus, 8k`;
 
     // ComfyUI Grok
-    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}, ${cameraEn}. Atmosphere: ${toneEn}. Colors: ${colorEn}${gearSuffix}. Realism, high resolution.`;
+    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}, ${cameraEn}. Atmosphere: ${toneEn}. Colors: ${colorEn}. Camera setup: ${cameraSentence || 'professional studio quality'}. Realism, high resolution.`;
 
     // Seedance
     const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera motion: ${cameraEn}, tone: ${toneEn}, color grade: ${colorEn}${gearSuffix}, high quality cinematic render, 8k resolution`;
@@ -197,6 +265,8 @@ Lens mm: "${LENS_MM[lensMm]?.ko} (${LENS_MM[lensMm]?.en})"
 Lens Type/Model: "${LENS_TYPES[lensType]?.ko} (${LENS_TYPES[lensType]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
+
+IMPORTANT: Do not just list the camera/lens properties as tags. Instead, interpret the specified Camera Gear, Lens mm, and Lens Type/Model, and integrate them into the prompts as a natural, professional cinematography sentence using proper camera/lens grammar (e.g., "Shot on an ARRI ALEXA Mini LF cinema camera paired with a 35mm prime anamorphic lens, delivering cinematic widescreen perspective, signature horizontal blue lens flares, and oval bokeh...").
 
 Provide a JSON object containing exactly seven fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
