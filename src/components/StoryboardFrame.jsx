@@ -174,7 +174,15 @@ export default function StoryboardFrame({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleUpdate = (updatedFields) => {
-    onUpdate(frame.id, updatedFields);
+    const clearedPrompts = {};
+    if (!frame.isMjEdited && !('customMjPrompt' in updatedFields)) clearedPrompts.customMjPrompt = '';
+    if (!frame.isNbEdited && !('customNbPrompt' in updatedFields)) clearedPrompts.customNbPrompt = '';
+    if (!frame.isCfEdited && !('customCfPrompt' in updatedFields)) clearedPrompts.customCfPrompt = '';
+    if (!frame.isGkEdited && !('customGkPrompt' in updatedFields)) clearedPrompts.customGkPrompt = '';
+    if (!frame.isSdEdited && !('customSdPrompt' in updatedFields)) clearedPrompts.customSdPrompt = '';
+    if (!frame.isLxEdited && !('customLxPrompt' in updatedFields)) clearedPrompts.customLxPrompt = '';
+
+    onUpdate(frame.id, { ...updatedFields, ...clearedPrompts });
   };
 
   const handleImageUpload = (e) => {
