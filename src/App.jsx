@@ -152,7 +152,27 @@ export default function App() {
     const savedFrames = localStorage.getItem('storyboard_frames');
     if (savedFrames) {
       try {
-        setFrames(JSON.parse(savedFrames));
+        const parsed = JSON.parse(savedFrames);
+        if (Array.isArray(parsed)) {
+          const ids = new Set();
+          let hasDuplicates = false;
+          const cleaned = parsed.map((f, idx) => {
+            if (!f.id || ids.has(f.id)) {
+              hasDuplicates = true;
+              return { 
+                ...f, 
+                id: `frame-${idx}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}` 
+              };
+            }
+            ids.add(f.id);
+            return f;
+          });
+          setFrames(cleaned);
+          if (hasDuplicates) {
+            localStorage.setItem('storyboard_frames', JSON.stringify(cleaned));
+            console.log('Duplicate frame IDs detected and repaired.');
+          }
+        }
       } catch (e) {
         console.error('스토리보드 데이터를 로드하는데 실패했습니다.');
       }
@@ -207,7 +227,7 @@ export default function App() {
 
   const handleAddFrame = () => {
     const newFrame = {
-      id: `frame-${Date.now()}`,
+      id: `frame-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       story: '',
       stylePreset: 'cinematic',
       shotType: 'cu',
@@ -311,7 +331,7 @@ export default function App() {
       if (selectedCampaign) {
         if (window.confirm(`"${selectedCampaign.title}" 시안 템플릿으로 스토리보드를 재구성하시겠습니까? (기존 데이터가 덮어씌워집니다)`)) {
           const loadedFrames = selectedCampaign.cuts.map((cut, idx) => ({
-            id: `frame-${idx}-${Date.now()}`,
+            id: `frame-${idx}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             story: cut.story,
             storyEn: cut.storyEn,
             stylePreset: cut.stylePreset,
@@ -416,7 +436,7 @@ Return the result as a JSON array of exactly ${generatorNumCuts} objects. Do not
 
       if (Array.isArray(parsed) && parsed.length > 0) {
         const loadedFrames = parsed.map((cut, idx) => ({
-          id: `frame-${idx}-${Date.now()}`,
+          id: `frame-${idx}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           story: cut.story,
           storyEn: cut.storyEn || '',
           stylePreset: cut.stylePreset || 'highend_ad',
