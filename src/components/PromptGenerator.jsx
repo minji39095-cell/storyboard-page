@@ -121,111 +121,93 @@ export default function PromptGenerator({
     isLxEdited = false
   } = frame;
 
-  const buildCinematicCameraDescription = (gear, lensMm, lensType) => {
-    const cameraNames = {
-      hasselblad: 'a Hasselblad H6D-100c medium format camera',
-      leica: 'a Leica M11 rangefinder camera',
-      fujifilm: 'a Fujifilm GFX 100S medium format camera',
-      sony: 'a Sony a7R V mirrorless camera',
-      canon: 'a Canon EOS R5 mirrorless camera',
-      arri: 'an ARRI ALEXA Mini LF cinema camera'
+  const buildStaticCameraDescription = (gear, lensMm, lensType) => {
+    const gearEffects = {
+      hasselblad: 'medium-format photographic aesthetics',
+      leica: 'rangefinder photographic quality',
+      fujifilm: 'rich digital color fidelity',
+      sony: 'crisp commercial digital contrast',
+      canon: 'professional high-resolution clarity',
+      arri: 'high-end Hollywood cinematic depth'
     };
 
-    const lensMmNames = {
-      mm12: '12mm ultra-wide angle',
-      mm24: '24mm wide-angle',
-      mm35: '35mm prime',
-      mm50: '50mm standard prime',
-      mm85: '85mm portrait prime',
-      mm135: '135mm telephoto prime',
-      mm200: '200mm super-telephoto prime'
-    };
-
-    const lensTypeNames = {
-      noctilux: 'Leica Noctilux-M 50mm f/0.95 lens',
-      otus: 'Zeiss Otus 55mm f/1.4 lens',
-      anamorphic: 'anamorphic lens',
-      master_prime: 'ARRI Zeiss Master Prime lens',
-      cooke: 'Cooke S4/i prime lens',
-      helios: 'vintage Helios 44-2 lens',
-      canon_l: 'Canon L-series USM lens'
+    const mmEffects = {
+      mm12: 'ultra-wide perspective',
+      mm24: 'wide-angle composition',
+      mm35: 'cinematic prime perspective',
+      mm50: 'natural standard focal depth',
+      mm85: 'shallow portrait depth-of-field',
+      mm135: 'compressed telephoto perspective',
+      mm200: 'telephoto compression aesthetics'
     };
 
     const lensEffects = {
-      noctilux: 'exhibiting extremely shallow depth of field, creamy background bokeh, and painterly out-of-focus falloff',
-      otus: 'capturing surgical sharpness, ultra-high resolution details, and perfect chromatic aberration control',
-      anamorphic: 'delivering cinematic widescreen perspective, signature horizontal blue lens flares, and oval bokeh',
-      master_prime: 'with crisp contrast, organic rendering, and pristine high-end Hollywood film aesthetics',
-      cooke: 'producing the famous "Cooke Look" with warm skin tones, gentle roll-off, and classic vintage rendering',
-      helios: 'exhibiting distinct swirly bokeh patterns, dreamlike light leaks, and vintage analog character',
-      canon_l: 'rendering rich professional contrast, high resolution, and vibrant commercial color accuracy'
+      noctilux: 'extremely shallow depth of field, creamy background bokeh, and painterly out-of-focus falloff',
+      otus: 'surgical optical sharpness, ultra-high resolution details, and perfect chromatic aberration control',
+      anamorphic: 'cinematic widescreen lens characteristics, oval background bokeh, and organic focus falloff',
+      master_prime: 'organic movie rendering, clean micro-contrast, and pristine Hollywood commercial aesthetics',
+      cooke: 'warm skin tones, gentle color roll-off, and classic vintage rendering',
+      helios: 'distinct swirly bokeh patterns, dreamlike light leaks, and vintage analog character',
+      canon_l: 'rich professional contrast, high resolution, and vibrant commercial color accuracy'
     };
 
-    const cameraBrand = cameraNames[gear];
-    const mmText = lensMmNames[lensMm];
-    const lensTypeName = lensTypeNames[lensType];
-    const effectText = lensEffects[lensType];
+    const gearText = gearEffects[gear];
+    const mmText = mmEffects[lensMm];
+    const lensText = lensEffects[lensType];
 
-    if (!cameraBrand && !mmText && !lensTypeName) {
-      return '';
-    }
+    const parts = [];
+    if (gearText) parts.push(`utilizing ${gearText}`);
+    if (mmText) parts.push(`with a ${mmText}`);
+    if (lensText) parts.push(`exhibiting ${lensText}`);
 
-    if (cameraBrand && mmText && lensTypeName) {
-      return `Shot on ${cameraBrand} paired with a ${mmText} ${lensTypeName}, ${effectText}`;
-    }
-    if (cameraBrand && lensTypeName) {
-      return `Shot on ${cameraBrand} equipped with a ${lensTypeName}, ${effectText}`;
-    }
-    if (cameraBrand && mmText) {
-      return `Shot on ${cameraBrand} using a professional ${mmText} lens for precise focal perspective`;
-    }
-    if (cameraBrand) {
-      return `Shot on ${cameraBrand} for professional studio photographic quality`;
-    }
-    if (lensTypeName && mmText) {
-      return `Captured using a ${mmText} ${lensTypeName}, ${effectText}`;
-    }
-    if (lensTypeName) {
-      return `Captured using a ${lensTypeName}, ${effectText}`;
-    }
-    if (mmText) {
-      return `Shot with a professional ${mmText} lens for clean optical composition`;
-    }
+    if (parts.length === 0) return 'captured in sharp focus, rendering professional photographic quality';
 
-    return '';
+    return `photographed to achieve a professional result ${parts.join(', ')}`;
   };
 
   // Local compiler when AI is not used
   const compileLocalPrompts = () => {
     const styleEn = STYLES[stylePreset]?.en || '';
     const shotEn = SHOTS[shotType]?.en || '';
-    const cameraEn = CAMERAS[cameraMove]?.en || '';
     const toneEn = TONES[tone]?.en || '';
     const colorEn = COLORS[colorPalette]?.en || '';
     const storyText = storyEn || story.trim() || 'A simple scene';
 
-    // Build the natural cinematography grammar sentence
-    const cameraSentence = buildCinematicCameraDescription(cameraGear, lensMm, lensType);
+    // 1. Static camera move: Filter out video motions for static engines to prevent motion blur/composition issues
+    const isStaticMove = cameraMove === 'static';
+    const staticCameraEn = isStaticMove ? 'steady camera perspective' : '';
+    
+    // Video camera move for LTX Video only
+    const videoCameraMoveEn = CAMERAS[cameraMove]?.en || '';
+
+    // 2. Camera & Lens description: Use brandless adjectival descriptions for static prompts
+    const cameraSentence = buildStaticCameraDescription(cameraGear, lensMm, lensType);
     const gearSuffix = cameraSentence ? `, ${cameraSentence}` : '';
     const gearSentence = cameraSentence ? ` ${cameraSentence}.` : '';
 
     // Midjourney
-    const mj = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
+    const mj = `${storyText}, ${styleEn}, ${shotEn}, ${staticCameraEn ? staticCameraEn + ', ' : ''}${toneEn}, ${colorEn}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
 
     // NanoBanana
-    const nb = `A detailed ${STYLES[stylePreset]?.noun || 'illustration'} depicting: ${storyText}. The scene features a ${shotEn} with ${cameraEn}.${gearSentence} The general mood is ${toneEn}, rendered in a ${colorEn}.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is ${storyText}. The composition is a ${shotEn}${staticCameraEn ? ' with a ' + staticCameraEn : ''}.${gearSentence} The general mood is ${toneEn}, rendered in a ${colorEn}.`;
 
-    // ComfyUI z-image-turbo
-    const cf = `${storyText}, ${styleEn}, ${shotEn}, ${cameraEn}, ${toneEn}, ${colorEn}${gearSuffix}, highly detailed, masterpiece, sharp focus, 8k`;
+    // ComfyUI Z-Image Turbo: Subject -> State -> Composition -> Lighting -> Atmosphere
+    // 1. Subject & State: storyText
+    // 2. Composition: shotEn + staticCameraEn
+    // 3. Lighting: toneEn and colorEn (as light descriptions)
+    // 4. Atmosphere: styleEn, cameraSentence, masterpiece modifiers
+    const compPart = [shotEn, staticCameraEn].filter(Boolean).join(', ');
+    const cf = `${storyText}, ${compPart || 'clear framing'}, illuminated by ${toneEn} and ${colorEn}, rendered in ${styleEn} style, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
 
     // ComfyUI Grok
-    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}, ${cameraEn}. Atmosphere: ${toneEn}. Colors: ${colorEn}. Camera setup: ${cameraSentence || 'professional studio quality'}. Realism, high resolution.`;
+    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}${staticCameraEn ? ', ' + staticCameraEn : ''}. Atmosphere: ${toneEn}. Colors: ${colorEn}. Camera setup: ${cameraSentence}. Realism, high resolution.`;
 
     // Seedance
-    const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera motion: ${cameraEn}, tone: ${toneEn}, color grade: ${colorEn}${gearSuffix}, high quality cinematic render, 8k resolution`;
+    const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera: ${staticCameraEn || 'steady'}, tone: ${toneEn}, color grade: ${colorEn}${gearSuffix}, high quality cinematic render, 8k resolution`;
 
-    // LTX Video
-    const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${cameraEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}${gearSuffix}. Smooth motion, highly detailed, photorealistic render.`;
+    // LTX Video (Dynamic video motion allowed)
+    const videoCameraDesc = `filmed using professional cinema equipment with ${videoCameraMoveEn || 'steady tracking'}`;
+    const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${videoCameraMoveEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}. ${videoCameraDesc}. Smooth motion, highly detailed, photorealistic render.`;
 
     return { mj, nb, cf, gk, sd, lx };
   };
@@ -259,22 +241,25 @@ export default function PromptGenerator({
 Story in Korean: "${story}"
 Style: "${STYLES[stylePreset]?.ko} (${STYLES[stylePreset]?.en})"
 Shot Type: "${SHOTS[shotType]?.ko} (${SHOTS[shotType]?.en})"
-Camera: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
+Camera Move: "${CAMERAS[cameraMove]?.ko} (${CAMERAS[cameraMove]?.en})"
 Camera Gear: "${CAMERA_GEAR[cameraGear]?.ko} (${CAMERA_GEAR[cameraGear]?.en})"
 Lens mm: "${LENS_MM[lensMm]?.ko} (${LENS_MM[lensMm]?.en})"
 Lens Type/Model: "${LENS_TYPES[lensType]?.ko} (${LENS_TYPES[lensType]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
-IMPORTANT: Do not just list the camera/lens properties as tags. Instead, interpret the specified Camera Gear, Lens mm, and Lens Type/Model, and integrate them into the prompts as a natural, professional cinematography sentence using proper camera/lens grammar (e.g., "Shot on an ARRI ALEXA Mini LF cinema camera paired with a 35mm prime anamorphic lens, delivering cinematic widescreen perspective, signature horizontal blue lens flares, and oval bokeh...").
+CRITICAL PROMPTING RULES:
+1. Prevent Camera/Lens Objects in Images: To stop the AI from drawing physical cameras or lenses in the scene, DO NOT mention nouns like "camera body", "camera model", "lens module", "Fujifilm GFX 100S", or "Canon L-series USM lens". Instead, describe the setup using brandless adjectival/prepositional filming style and optical properties (e.g., "photographed with medium-format aesthetics, utilizing shallow depth-of-field and soft out-of-focus background bokeh").
+2. No Video Motion in Static Prompts: For all static engines (Midjourney, NanoBanana, ComfyUI, Grok, Seedance), DO NOT include video movement terms (such as "slow rotation", "orbital motion", "zooming in", "panning", "tilting", "tracking"). Replace them with static terms (e.g. "steady camera perspective", "still photograph") or omit them entirely to prevent motion blur and duplicate objects. Only include dynamic motions in the LTX Video prompt.
+3. ComfyUI Z-Image Turbo Prompt Structure: The "comfyui" prompt MUST follow this exact natural language sentence structure: [Subject] -> [State] -> [Composition] -> [Lighting] -> [Atmosphere]. Do not write long tag lists. Example: "[Subject/Story details], [State/Action], [Composition/Framing], illuminated by [Lighting], rendered in [Style] style, [Camera/Lens optical description], highly detailed, masterpiece, sharp focus, 8k".
 
 Provide a JSON object containing exactly seven fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
-2. "midjourney": A prompt optimized for Midjourney (comma-separated keywords, ending with --ar ${aspectRatio} --v 6.0, incorporating the specified camera gear, lens type and focal length).
-3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, camera lens focal length, lens model, and lighting).
-4. "comfyui": A prompt optimized for ComfyUI z-image-turbo (tags, triggers, masterpiece modifiers, camera gear, lens type and lens mm tags).
-5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags, including camera gear, lens type and focal length details).
-6. "seedance": A prompt optimized for Seedance (cinematic commercial camera motion, camera gear and lens model setup, color grading video tags).
+2. "midjourney": A prompt optimized for Midjourney (incorporating the brandless camera/lens rendering description, static framing only, ending with --ar ${aspectRatio} --v 6.0).
+3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, brandless optical properties, static composition, and lighting).
+4. "comfyui": A prompt optimized for ComfyUI z-image-turbo following the exact structure: [Subject] -> [State] -> [Composition] -> [Lighting] -> [Atmosphere].
+5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags, including brandless camera/lens rendering details and static composition).
+6. "seedance": A prompt optimized for Seedance (cinematic commercial look, brandless camera/lens rendering setup, static camera framing, and color grading).
 7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera lens zoom/perspective, and camera gear/lens type effects).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;

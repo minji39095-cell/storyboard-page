@@ -183,78 +183,48 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [isSdEdited, setIsSdEdited] = useState(false);
   const [isLxEdited, setIsLxEdited] = useState(false);
 
-  const buildCinematicCameraDescription = (gear, lensMm, lensType) => {
-    const cameraNames = {
-      hasselblad: 'a Hasselblad H6D-100c medium format camera',
-      leica: 'a Leica M11 rangefinder camera',
-      fujifilm: 'a Fujifilm GFX 100S medium format camera',
-      sony: 'a Sony a7R V mirrorless camera',
-      canon: 'a Canon EOS R5 mirrorless camera',
-      arri: 'an ARRI ALEXA Mini LF cinema camera'
+  const buildStaticCameraDescription = (gear, lensMm, lensType) => {
+    const gearEffects = {
+      hasselblad: 'medium-format photographic aesthetics',
+      leica: 'rangefinder photographic quality',
+      fujifilm: 'rich digital color fidelity',
+      sony: 'crisp commercial digital contrast',
+      canon: 'professional high-resolution clarity',
+      arri: 'high-end Hollywood cinematic depth'
     };
 
-    const lensMmNames = {
-      mm12: '12mm ultra-wide angle',
-      mm24: '24mm wide-angle',
-      mm35: '35mm prime',
-      mm50: '50mm standard prime',
-      mm85: '85mm portrait prime',
-      mm135: '135mm telephoto prime',
-      mm200: '200mm super-telephoto prime'
-    };
-
-    const lensTypeNames = {
-      noctilux: 'Leica Noctilux-M 50mm f/0.95 lens',
-      otus: 'Zeiss Otus 55mm f/1.4 lens',
-      anamorphic: 'anamorphic lens',
-      master_prime: 'ARRI Zeiss Master Prime lens',
-      cooke: 'Cooke S4/i prime lens',
-      helios: 'vintage Helios 44-2 lens',
-      canon_l: 'Canon L-series USM lens'
+    const mmEffects = {
+      mm12: 'ultra-wide perspective',
+      mm24: 'wide-angle composition',
+      mm35: 'cinematic prime perspective',
+      mm50: 'natural standard focal depth',
+      mm85: 'shallow portrait depth-of-field',
+      mm135: 'compressed telephoto perspective',
+      mm200: 'telephoto compression aesthetics'
     };
 
     const lensEffects = {
-      noctilux: 'exhibiting extremely shallow depth of field, creamy background bokeh, and painterly out-of-focus falloff',
-      otus: 'capturing surgical sharpness, ultra-high resolution details, and perfect chromatic aberration control',
-      anamorphic: 'delivering cinematic widescreen perspective, signature horizontal blue lens flares, and oval bokeh',
-      master_prime: 'with crisp contrast, organic rendering, and pristine high-end Hollywood film aesthetics',
-      cooke: 'producing the famous "Cooke Look" with warm skin tones, gentle roll-off, and classic vintage rendering',
-      helios: 'exhibiting distinct swirly bokeh patterns, dreamlike light leaks, and vintage analog character',
-      canon_l: 'rendering rich professional contrast, high resolution, and vibrant commercial color accuracy'
+      noctilux: 'extremely shallow depth of field, creamy background bokeh, and painterly out-of-focus falloff',
+      otus: 'surgical optical sharpness, ultra-high resolution details, and perfect chromatic aberration control',
+      anamorphic: 'cinematic widescreen lens characteristics, oval background bokeh, and organic focus falloff',
+      master_prime: 'organic movie rendering, clean micro-contrast, and pristine Hollywood commercial aesthetics',
+      cooke: 'warm skin tones, gentle color roll-off, and classic vintage rendering',
+      helios: 'distinct swirly bokeh patterns, dreamlike light leaks, and vintage analog character',
+      canon_l: 'rich professional contrast, high resolution, and vibrant commercial color accuracy'
     };
 
-    const cameraBrand = cameraNames[gear];
-    const mmText = lensMmNames[lensMm];
-    const lensTypeName = lensTypeNames[lensType];
-    const effectText = lensEffects[lensType];
+    const gearText = gearEffects[gear];
+    const mmText = mmEffects[lensMm];
+    const lensText = lensEffects[lensType];
 
-    if (!cameraBrand && !mmText && !lensTypeName) {
-      return '';
-    }
+    const parts = [];
+    if (gearText) parts.push(`utilizing ${gearText}`);
+    if (mmText) parts.push(`with a ${mmText}`);
+    if (lensText) parts.push(`exhibiting ${lensText}`);
 
-    if (cameraBrand && mmText && lensTypeName) {
-      return `Shot on ${cameraBrand} paired with a ${mmText} ${lensTypeName}, ${effectText}`;
-    }
-    if (cameraBrand && lensTypeName) {
-      return `Shot on ${cameraBrand} equipped with a ${lensTypeName}, ${effectText}`;
-    }
-    if (cameraBrand && mmText) {
-      return `Shot on ${cameraBrand} using a professional ${mmText} lens for precise focal perspective`;
-    }
-    if (cameraBrand) {
-      return `Shot on ${cameraBrand} for professional studio photographic quality`;
-    }
-    if (lensTypeName && mmText) {
-      return `Captured using a ${mmText} ${lensTypeName}, ${effectText}`;
-    }
-    if (lensTypeName) {
-      return `Captured using a ${lensTypeName}, ${effectText}`;
-    }
-    if (mmText) {
-      return `Shot with a professional ${mmText} lens for clean optical composition`;
-    }
+    if (parts.length === 0) return 'captured in sharp focus, rendering professional photographic quality';
 
-    return '';
+    return `photographed to achieve a professional result ${parts.join(', ')}`;
   };
 
   // Fallback compiler
@@ -316,7 +286,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const mmKey = lensMmMap[lensMm] || 'none';
     const typeKey = lensTypeMap[lensType] || 'none';
 
-    const cameraSentence = buildCinematicCameraDescription(gearKey, mmKey, typeKey);
+    const cameraSentence = buildStaticCameraDescription(gearKey, mmKey, typeKey);
 
     const descPart = customDescEn ? `, ${customDescEn}` : '';
     const descPartNb = customDescEn ? `, featuring ${customDescEn}` : '';
@@ -336,8 +306,13 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     // NanoBanana
     const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. ${cameraSentence || 'Shot on a professional camera'}. Captured under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
-    // ComfyUI
-    const cf = `raw photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${cameraSentence ? cameraSentence + ', ' : ''}${lightEn}, ${bgEn}, realistic skin texture, visible pores, masterpiece, highly detailed, sharp focus`;
+    // ComfyUI Z-Image Turbo: Subject -> State -> Composition -> Lighting -> Atmosphere
+    // 1. Subject: A raw portrait photograph of a ${subjectEn}
+    // 2. State: with ${hairEn} and ${makeupEn}, ${exprEn}${descPart}
+    // 3. Composition: in a ${compEn} framing${posePart ? ', posing' + posePart : ''}
+    // 4. Lighting: illuminated by ${lightEn}
+    // 5. Atmosphere: showing natural realistic skin texture highlighting ${skinEn} with ${detailEn}, ${bgEn ? 'against a ' + bgEn : ''}, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k
+    const cf = `A raw portrait photograph of a ${subjectEn}, with ${hairEn} and ${makeupEn}, ${exprEn}${descPart}, in a ${compEn} framing${posePart ? ', posing' + posePart : ''}, illuminated by ${lightEn}, showing natural realistic skin texture highlighting ${skinEn} with ${detailEn}, ${bgEn ? 'against a ' + bgEn : ''}, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
 
     // ComfyUI Grok
     const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}. Camera setup: ${cameraSentence || 'professional studio quality'}.`;
