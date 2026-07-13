@@ -58,6 +58,9 @@ const HAIRS = [
   { ko: '앞머리 없는 긴생머리', en: 'long sleek straight hair without bangs, middle part' },
   { ko: '깔끔한 숏 단발', en: 'sleek short bob hair style' },
   { ko: '올백 (Slicked back)', en: 'slicked back hair style, elegant' },
+  { ko: '젖은 질감 올백 (Wet-look)', en: 'wet-look slicked-back hair style, high gloss, editorial look' },
+  { ko: '짧은 삭발/크롭 헤어 (Buzzcut)', en: 'buzzcut hairstyle, ultra-short cropped hair' },
+  { ko: '헝클어진 단발 (Windswept bob)', en: 'windswept messy short bob hairstyle, textured' },
   { ko: '길고 물결치는 머리', en: 'long wavy hair, natural flow' },
   { ko: '포니테일', en: 'neat ponytail hair style' },
   { ko: '짧은 숏컷', en: 'short cropped hair style' }
@@ -88,7 +91,10 @@ const POSES = [
   { ko: '팔짱을 낀 자세', en: 'arms crossed pose, confident look' },
   { ko: '제품을 턱 밑에 대고 있는 포즈', en: 'holding a cosmetic bottle gently near chin' },
   { ko: '제품을 보여주는 포즈', en: 'holding and presenting a product to the camera' },
-  { ko: '어깨 너머로 뒤돌아보는 포즈', en: 'looking back over shoulder pose' }
+  { ko: '어깨 너머로 뒤돌아보는 포즈', en: 'looking back over shoulder pose' },
+  { ko: '턱 괴고 쪼그려 앉은 하이패션 포즈', en: 'crouching high-fashion editorial pose with one hand under chin, crouching profile' },
+  { ko: '주머니 손 넣고 뒤돌아보는 포즈', en: 'standing in profile, hands in pockets, looking back over shoulder' },
+  { ko: '가죽 안락의자에 깊게 비스듬히 앉은 자세', en: 'sitting deeply reclined in a luxury leather armchair, confident posture' }
 ];
 
 const DETAILS = [
@@ -99,6 +105,7 @@ const DETAILS = [
 ];
 
 const LIGHTS = [
+  { ko: '하이패션 화보 조명 (Editorial)', en: 'high-fashion editorial photography lighting, soft high-contrast studio shadows' },
   { ko: '렘브란트 라이트 (명암)', en: 'soft side Rembrandt lighting, dramatic shadows' },
   { ko: '골든 아워 자연광 (따뜻함)', en: 'warm golden hour sunlight, natural diffused light' },
   { ko: '소프트 스튜디오 조명', en: 'soft diffused studio key light' },
@@ -106,6 +113,8 @@ const LIGHTS = [
 ];
 
 const BACKGROUNDS = [
+  { ko: '미니멀 쿨그레이 스튜디오', en: 'minimalist cool gray studio backdrop' },
+  { ko: '미니멀 웜베이지 스튜디오', en: 'minimalist warm beige studio backdrop' },
   { ko: '심플 콘크리트 벽', en: 'minimalist gray concrete wall background' },
   { ko: '부드럽게 흐려진 실내', en: 'soft out-of-focus indoor room background' },
   { ko: '자연 채광 야외 숲', en: 'blurred natural outdoor forest background' },
@@ -115,6 +124,10 @@ const BACKGROUNDS = [
 
 const CLOTHES = [
   { ko: '기본 (의상 미지정)', en: '' },
+  { ko: '오버사이즈 파워숄더 블레이저', en: 'dressed in an oversized black power-shoulder blazer' },
+  { ko: '광택 실크/새틴 바이올렛 드레스', en: 'dressed in a glossy shimmering violet satin-silk dress' },
+  { ko: '빈티지 브라운 가죽 자켓', en: 'dressed in a distressed vintage brown leather jacket' },
+  { ko: '다크 브라운 테일러드 수트', en: 'dressed in a tailored dark brown formal suit' },
   { ko: '캐주얼 화이트 티셔츠', en: 'dressed in a simple casual white t-shirt' },
   { ko: '럭셔리 포멀 수트', en: 'dressed in a premium luxury formal suit' },
   { ko: '세련된 실크 블라우스', en: 'dressed in a sophisticated silk blouse' },
@@ -123,6 +136,13 @@ const CLOTHES = [
   { ko: '우아한 블랙 드레스', en: 'dressed in an elegant black dress' },
   { ko: '클래식 베이지 트렌치코트', en: 'dressed in a classic beige trench coat' },
   { ko: '트렌디 데님 자켓', en: 'dressed in a trendy street-style denim jacket' }
+];
+
+const ACCESSORIES = [
+  { ko: '기본 (악세사리 없음)', en: '' },
+  { ko: '블랙 오발 선글라스 (젠틀몬스터 스타일)', en: 'wearing trendy black oval sunglasses' },
+  { ko: '청키한 골드 링 귀걸이', en: 'wearing chunky gold hoop earrings' },
+  { ko: '시크한 와이드 가죽 벨트', en: 'wearing a chic wide leather belt around waist' }
 ];
 
 const CAMERAS = [
@@ -168,6 +188,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [makeup, setMakeup] = useState('화장기 없는 맨얼굴');
   const [pose, setPose] = useState('기본 (포즈 미지정)');
   const [clothes, setClothes] = useState('기본 (의상 미지정)');
+  const [accessory, setAccessory] = useState('기본 (악세사리 없음)');
   const [detail, setDetail] = useState('잔주름 및 모공 강조');
   const [light, setLight] = useState('렘브란트 라이트 (명암)');
   const [background, setBackground] = useState('부드럽게 흐려진 실내');
@@ -264,6 +285,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const makeupEn = MAKEUPS.find(m => m.ko === makeup)?.en || '';
     const poseEn = POSES.find(p => p.ko === pose)?.en || '';
     const clothesEn = CLOTHES.find(c => c.ko === clothes)?.en || '';
+    const accessoryEn = ACCESSORIES.find(a => a.ko === accessory)?.en || '';
     const detailEn = DETAILS.find(d => d.ko === detail)?.en || '';
     const lightEn = LIGHTS.find(l => l.ko === light)?.en || '';
     const bgEn = BACKGROUNDS.find(b => b.ko === background)?.en || '';
@@ -317,22 +339,22 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const cameraSuffix = cameraSentence ? `, ${cameraSentence}` : '';
 
     // Midjourney
-    const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSuffix} --ar 16:9 --v 6.0 --style raw`;
+    const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSuffix} --ar 16:9 --v 6.0 --style raw`;
 
     // NanoBanana
-    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. ${cameraSentence || 'Shot on a professional camera'}. Captured under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. ${cameraSentence || 'Shot on a professional camera'}. Captured under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
     // ComfyUI Z-Image Turbo: Subject -> State -> Composition -> Lighting -> Atmosphere
-    const cf = `A raw portrait photograph of a ${subjectEn}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}, ${exprEn}${descPart}, in a ${compEn} framing${posePart ? ', posing' + posePart : ''}, illuminated by ${lightEn}, showing natural realistic skin texture highlighting ${skinEn} with ${detailEn}, ${bgEn ? 'against a ' + bgEn : ''}, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
+    const cf = `A raw portrait photograph of a ${subjectEn}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}, ${exprEn}${descPart}, in a ${compEn} framing${posePart ? ', posing' + posePart : ''}, illuminated by ${lightEn}, showing natural realistic skin texture highlighting ${skinEn} with ${detailEn}, ${bgEn ? 'against a ' + bgEn : ''}, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
 
     // ComfyUI Grok
-    const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}. Camera setup: ${cameraSentence || 'professional studio quality'}.`;
+    const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}. Camera setup: ${cameraSentence || 'professional studio quality'}.`;
 
     // Seedance
-    const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSentence || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
+    const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSentence || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
 
     // LTX Video
-    const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSuffix}. Photorealistic, natural motion, high-end commercial grade.`;
+    const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSuffix}. Photorealistic, natural motion, high-end commercial grade.`;
 
     return { mj, nb, cf, gk, sd, lx };
   };
@@ -435,6 +457,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
     setMakeup('화장기 없는 맨얼굴');
     setPose('기본 (포즈 미지정)');
     setClothes('기본 (의상 미지정)');
+    setAccessory('기본 (악세사리 없음)');
     setDetail('잔주름 및 모공 강조');
     setLight('렘브란트 라이트 (명암)');
     setBackground('부드럽게 흐려진 실내');
@@ -584,6 +607,14 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           <label style={{ fontSize: '0.65rem' }}>의상 / 옷</label>
           <select value={clothes} onChange={(e) => setClothes(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%' }}>
             {CLOTHES.map(c => <option key={c.ko} value={c.ko}>{c.ko}</option>)}
+          </select>
+        </div>
+
+        {/* Row 7.6: Accessories (1 column - Full width) */}
+        <div className="form-group">
+          <label style={{ fontSize: '0.65rem' }}>악세사리 / 소품</label>
+          <select value={accessory} onChange={(e) => setAccessory(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%' }}>
+            {ACCESSORIES.map(a => <option key={a.ko} value={a.ko}>{a.ko}</option>)}
           </select>
         </div>
 
