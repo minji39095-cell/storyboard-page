@@ -111,6 +111,18 @@ const BACKGROUNDS = [
   { ko: '단색 스튜디오 배경', en: 'solid minimalist studio backdrop' }
 ];
 
+const CLOTHES = [
+  { ko: '기본 (의상 미지정)', en: '' },
+  { ko: '캐주얼 화이트 티셔츠', en: 'dressed in a simple casual white t-shirt' },
+  { ko: '럭셔리 포멀 수트', en: 'dressed in a premium luxury formal suit' },
+  { ko: '세련된 실크 블라우스', en: 'dressed in a sophisticated silk blouse' },
+  { ko: '포근한 오버사이즈 니트', en: 'dressed in a cozy oversized knit sweater' },
+  { ko: '스포티 애슬레저 룩', en: 'dressed in stylish modern athletic wear' },
+  { ko: '우아한 블랙 드레스', en: 'dressed in an elegant black dress' },
+  { ko: '클래식 베이지 트렌치코트', en: 'dressed in a classic beige trench coat' },
+  { ko: '트렌디 데님 자켓', en: 'dressed in a trendy street-style denim jacket' }
+];
+
 const CAMERAS = [
   { ko: 'Hasselblad H6D (중형)', en: 'shot on Hasselblad H6D-100c' },
   { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11' },
@@ -153,6 +165,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [hairColor, setHairColor] = useState('검은색');
   const [makeup, setMakeup] = useState('화장기 없는 맨얼굴');
   const [pose, setPose] = useState('기본 (포즈 미지정)');
+  const [clothes, setClothes] = useState('기본 (의상 미지정)');
   const [detail, setDetail] = useState('잔주름 및 모공 강조');
   const [light, setLight] = useState('렘브란트 라이트 (명암)');
   const [background, setBackground] = useState('부드럽게 흐려진 실내');
@@ -248,6 +261,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
 
     const makeupEn = MAKEUPS.find(m => m.ko === makeup)?.en || '';
     const poseEn = POSES.find(p => p.ko === pose)?.en || '';
+    const clothesEn = CLOTHES.find(c => c.ko === clothes)?.en || '';
     const detailEn = DETAILS.find(d => d.ko === detail)?.en || '';
     const lightEn = LIGHTS.find(l => l.ko === light)?.en || '';
     const bgEn = BACKGROUNDS.find(b => b.ko === background)?.en || '';
@@ -301,27 +315,22 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const cameraSuffix = cameraSentence ? `, ${cameraSentence}` : '';
 
     // Midjourney
-    const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSuffix} --ar 16:9 --v 6.0 --style raw`;
+    const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${cameraSuffix} --ar 16:9 --v 6.0 --style raw`;
 
     // NanoBanana
-    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. ${cameraSentence || 'Shot on a professional camera'}. Captured under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. ${cameraSentence || 'Shot on a professional camera'}. Captured under ${lightEn} with a ${bgEn}. Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
     // ComfyUI Z-Image Turbo: Subject -> State -> Composition -> Lighting -> Atmosphere
-    // 1. Subject: A raw portrait photograph of a ${subjectEn}
-    // 2. State: with ${hairEn} and ${makeupEn}, ${exprEn}${descPart}
-    // 3. Composition: in a ${compEn} framing${posePart ? ', posing' + posePart : ''}
-    // 4. Lighting: illuminated by ${lightEn}
-    // 5. Atmosphere: showing natural realistic skin texture highlighting ${skinEn} with ${detailEn}, ${bgEn ? 'against a ' + bgEn : ''}, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k
-    const cf = `A raw portrait photograph of a ${subjectEn}, with ${hairEn} and ${makeupEn}, ${exprEn}${descPart}, in a ${compEn} framing${posePart ? ', posing' + posePart : ''}, illuminated by ${lightEn}, showing natural realistic skin texture highlighting ${skinEn} with ${detailEn}, ${bgEn ? 'against a ' + bgEn : ''}, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
+    const cf = `A raw portrait photograph of a ${subjectEn}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}, ${exprEn}${descPart}, in a ${compEn} framing${posePart ? ', posing' + posePart : ''}, illuminated by ${lightEn}, showing natural realistic skin texture highlighting ${skinEn} with ${detailEn}, ${bgEn ? 'against a ' + bgEn : ''}, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
 
     // ComfyUI Grok
-    const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}. Camera setup: ${cameraSentence || 'professional studio quality'}.`;
+    const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}. Camera setup: ${cameraSentence || 'professional studio quality'}.`;
 
     // Seedance
-    const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSentence || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
+    const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSentence || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}, photorealistic skin textures, high-end commercial grading`;
 
     // LTX Video
-    const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSuffix}. Photorealistic, natural motion, high-end commercial grade.`;
+    const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${cameraSuffix}. Photorealistic, natural motion, high-end commercial grade.`;
 
     return { mj, nb, cf, gk, sd, lx };
   };
@@ -423,6 +432,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
     setHairColor('검은색');
     setMakeup('화장기 없는 맨얼굴');
     setPose('기본 (포즈 미지정)');
+    setClothes('기본 (의상 미지정)');
     setDetail('잔주름 및 모공 강조');
     setLight('렘브란트 라이트 (명암)');
     setBackground('부드럽게 흐려진 실내');
@@ -564,6 +574,14 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           <label style={{ fontSize: '0.65rem' }}>배경</label>
           <select value={background} onChange={(e) => setBackground(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%' }}>
             {BACKGROUNDS.map(b => <option key={b.ko} value={b.ko}>{b.ko}</option>)}
+          </select>
+        </div>
+
+        {/* Row 7.5: Clothes (1 column - Full width) */}
+        <div className="form-group">
+          <label style={{ fontSize: '0.65rem' }}>의상 / 옷</label>
+          <select value={clothes} onChange={(e) => setClothes(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%' }}>
+            {CLOTHES.map(c => <option key={c.ko} value={c.ko}>{c.ko}</option>)}
           </select>
         </div>
 
