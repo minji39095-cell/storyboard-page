@@ -54,6 +54,8 @@ const EXPRESSIONS = [
 
 const HAIRS = [
   { ko: '자연스런 번 (올림머리)', en: 'messy bun hair style, loose strands' },
+  { ko: '앞머리 뱅 + 긴생머리', en: 'long straight hair with neat front bangs' },
+  { ko: '앞머리 없는 긴생머리', en: 'long sleek straight hair without bangs, middle part' },
   { ko: '깔끔한 숏 단발', en: 'sleek short bob hair style' },
   { ko: '올백 (Slicked back)', en: 'slicked back hair style, elegant' },
   { ko: '길고 물결치는 머리', en: 'long wavy hair, natural flow' },
