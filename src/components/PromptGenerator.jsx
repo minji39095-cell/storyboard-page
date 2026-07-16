@@ -113,12 +113,14 @@ export default function PromptGenerator({
     customGkPrompt = '',
     customSdPrompt = '',
     customLxPrompt = '',
+    customFxPrompt = '',
     isMjEdited = false,
     isNbEdited = false,
     isCfEdited = false,
     isGkEdited = false,
     isSdEdited = false,
-    isLxEdited = false
+    isLxEdited = false,
+    isFxEdited = false
   } = frame;
 
   const buildStaticCameraDescription = (gear, lensMm, lensType) => {
@@ -192,10 +194,6 @@ export default function PromptGenerator({
     const nb = `A highly detailed, raw realistic photograph. The subject is ${storyText}. The composition is a ${shotEn}${staticCameraEn ? ' with a ' + staticCameraEn : ''}.${gearSentence} The general mood is ${toneEn}, rendered in a ${colorEn}.`;
 
     // ComfyUI Z-Image Turbo: Subject -> State -> Composition -> Lighting -> Atmosphere
-    // 1. Subject & State: storyText
-    // 2. Composition: shotEn + staticCameraEn
-    // 3. Lighting: toneEn and colorEn (as light descriptions)
-    // 4. Atmosphere: styleEn, cameraSentence, masterpiece modifiers
     const compPart = [shotEn, staticCameraEn].filter(Boolean).join(', ');
     const cf = `${storyText}, ${compPart || 'clear framing'}, illuminated by ${toneEn} and ${colorEn}, rendered in ${styleEn} style, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
 
@@ -209,7 +207,10 @@ export default function PromptGenerator({
     const videoCameraDesc = `filmed using professional cinema equipment with ${videoCameraMoveEn || 'steady tracking'}`;
     const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${videoCameraMoveEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}. ${videoCameraDesc}. Smooth motion, highly detailed, photorealistic render.`;
 
-    return { mj, nb, cf, gk, sd, lx };
+    // Flux Image Edit ComfyUI
+    const fx = `flux image edit, style of ${styleEn}, modify scene focus to ${storyText}, keeping composition framing as ${shotEn}, atmosphere ${toneEn}, colors ${colorEn}, ${cameraSentence}, high fidelity image editing, realistic raw photography, masterpiece`;
+
+    return { mj, nb, cf, gk, sd, lx, fx };
   };
 
   const localPrompts = compileLocalPrompts();
@@ -219,6 +220,7 @@ export default function PromptGenerator({
   const activeGk = customGkPrompt !== '' ? customGkPrompt : localPrompts.gk;
   const activeSd = customSdPrompt !== '' ? customSdPrompt : localPrompts.sd;
   const activeLx = customLxPrompt !== '' ? customLxPrompt : localPrompts.lx;
+  const activeFx = customFxPrompt !== '' ? customFxPrompt : localPrompts.fx;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -253,7 +255,7 @@ CRITICAL PROMPTING RULES:
 2. No Video Motion in Static Prompts: For all static engines (Midjourney, NanoBanana, ComfyUI, Grok, Seedance), DO NOT include video movement terms (such as "slow rotation", "orbital motion", "zooming in", "panning", "tilting", "tracking"). Replace them with static terms (e.g. "steady camera perspective", "still photograph") or omit them entirely to prevent motion blur and duplicate objects. Only include dynamic motions in the LTX Video prompt.
 3. ComfyUI Z-Image Turbo Prompt Structure: The "comfyui" prompt MUST follow this exact natural language sentence structure: [Subject] -> [State] -> [Composition] -> [Lighting] -> [Atmosphere]. Do not write long tag lists. Example: "[Subject/Story details], [State/Action], [Composition/Framing], illuminated by [Lighting], rendered in [Style] style, [Camera/Lens optical description], highly detailed, masterpiece, sharp focus, 8k".
 
-Provide a JSON object containing exactly seven fields:
+Provide a JSON object containing exactly eight fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
 2. "midjourney": A prompt optimized for Midjourney (incorporating the brandless camera/lens rendering description, static framing only, ending with --ar ${aspectRatio} --v 6.0).
 3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, brandless optical properties, static composition, and lighting).
@@ -261,6 +263,7 @@ Provide a JSON object containing exactly seven fields:
 5. "grok": A prompt optimized for Grok (Flux/Grok natural spatial tags, including brandless camera/lens rendering details and static composition).
 6. "seedance": A prompt optimized for Seedance (cinematic commercial look, brandless camera/lens rendering setup, static camera framing, and color grading).
 7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera lens zoom/perspective, and camera gear/lens type effects).
+8. "fluxedit": A prompt optimized for Flux Image Edit in ComfyUI (detailing edit/modify instructions to change the scene content to story description while maintaining high-fidelity aesthetics).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
@@ -288,7 +291,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         const textResponse = data.candidates[0].content.parts[0].text;
         const parsed = JSON.parse(textResponse);
 
-        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui && parsed.grok && parsed.seedance && parsed.ltxvideo) {
+        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui && parsed.grok && parsed.seedance && parsed.ltxvideo && parsed.fluxedit) {
           const updateData = { storyEn: parsed.storyEn };
           
           if (!isMjEdited) updateData.customMjPrompt = parsed.midjourney;
@@ -297,6 +300,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
           if (!isGkEdited) updateData.customGkPrompt = parsed.grok;
           if (!isSdEdited) updateData.customSdPrompt = parsed.seedance;
           if (!isLxEdited) updateData.customLxPrompt = parsed.ltxvideo;
+          if (!isFxEdited) updateData.customFxPrompt = parsed.fluxedit;
 
           onChange(updateData);
           showToast('AI 번역 및 고도화 완료');
@@ -321,7 +325,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             isCfEdited: false,
             isGkEdited: false,
             isSdEdited: false,
-            isLxEdited: false
+            isLxEdited: false,
+            isFxEdited: false
           });
           showToast('영문 번역 완료 (MyMemory)');
         } else {
@@ -344,12 +349,14 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       customGkPrompt: '',
       customSdPrompt: '',
       customLxPrompt: '',
+      customFxPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
       isGkEdited: false,
       isSdEdited: false,
-      isLxEdited: false
+      isLxEdited: false,
+      isFxEdited: false
     });
   };
 
@@ -573,7 +580,40 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         />
       </div>
 
-      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited) && (
+      {/* Flux Image Edit Box */}
+      <div className="prompt-box">
+        <div className="prompt-box-header">
+          <span className="prompt-badge" style={{ backgroundColor: '#ff7a00', color: '#ffffff', fontSize: '0.65rem' }}>Flux Image Edit ComfyUI</span>
+          <button 
+            type="button" 
+            className="btn btn-text btn-sm" 
+            style={{ padding: '2px' }}
+            onClick={() => copyToClipboard(activeFx, 'Flux Image Edit')}
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+        <textarea
+          className="prompt-text"
+          value={activeFx}
+          onChange={(e) => onChange({ customFxPrompt: e.target.value, isFxEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '60px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="Flux Image Edit 프롬프트 편집..."
+        />
+      </div>
+
+      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || customFxPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
