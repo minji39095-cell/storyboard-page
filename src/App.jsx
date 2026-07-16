@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Download, Upload, Printer, Key, Sparkles, Film, Trash, Lock, Unlock, Eye, EyeOff, X, AlertCircle } from 'lucide-react';
 import StoryboardFrame from './components/StoryboardFrame';
 import ModelPromptGenerator from './components/ModelPromptGenerator';
+import PromptStateCompiler from './components/PromptStateCompiler';
 
 // Master passcode for accessing the page (can be customized)
 const MASTER_PASSCODE = 'storyboard123';
@@ -661,6 +662,7 @@ Return the result as a JSON array of exactly ${generatorNumCuts} objects. Do not
                 </div>
               </div>
             )}
+            <PromptStateCompiler />
           </div>
         </div>
       </main>
