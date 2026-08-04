@@ -201,7 +201,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [loading, setLoading] = useState(false);
 
   // Main assembled prompts
-  const [prompts, setPrompts] = useState({ mj: '', nb: '', cf: '', gk: '', sd: '', lx: '', fx: '' });
+  const [prompts, setPrompts] = useState({ mj: '', nb: '', cf: '', gk: '', sd: '', lx: '', fx: '', kl: '' });
 
   // Custom manually edited prompt fields
   const [customMjPrompt, setCustomMjPrompt] = useState('');
@@ -211,6 +211,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [customSdPrompt, setCustomSdPrompt] = useState('');
   const [customLxPrompt, setCustomLxPrompt] = useState('');
   const [customFxPrompt, setCustomFxPrompt] = useState('');
+  const [customKlPrompt, setCustomKlPrompt] = useState('');
 
   // Dirty edit tracking
   const [isMjEdited, setIsMjEdited] = useState(false);
@@ -220,6 +221,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [isSdEdited, setIsSdEdited] = useState(false);
   const [isLxEdited, setIsLxEdited] = useState(false);
   const [isFxEdited, setIsFxEdited] = useState(false);
+  const [isKlEdited, setIsKlEdited] = useState(false);
 
   const buildStaticCameraDescription = (gear, lensMm, lensType) => {
     const gearEffects = {
@@ -361,7 +363,10 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     // Flux Image Edit
     const fx = `flux image edit, edit instructions: modify model attributes to a ${subjectEn}${posePart}, with ${hairEn} and ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}, face expression: ${exprEn}${descPart}, captured in a ${compEn} framing, focusing on detailed ${skinEn} texture with ${detailEn}, under ${lightEn} in front of ${bgEn}, ${cameraSentence}`;
 
-    return { mj, nb, cf, gk, sd, lx, fx };
+    // Kling Video
+    const kl = `A high-quality cinematic video clip of a ${subjectEn}${posePart}. The subject is captured with a ${compEn} framing. Details: ${hairEn}, ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}${exprEn}${descPart}. Lighting: ${lightEn}. Background: ${bgEn}. Camera setup: ${cameraSentence}. Photorealistic skin texture, extremely fluid natural human movement, masterpiece, 4k.`;
+
+    return { mj, nb, cf, gk, sd, lx, fx, kl };
   };
 
   const handleAssembleAndTranslate = async () => {
@@ -427,6 +432,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       if (!isSdEdited) setCustomSdPrompt(compiled.sd);
       if (!isLxEdited) setCustomLxPrompt(compiled.lx);
       if (!isFxEdited) setCustomFxPrompt(compiled.fx);
+      if (!isKlEdited) setCustomKlPrompt(compiled.kl);
 
       // Update baseline prompts
       setPrompts(compiled);
@@ -450,6 +456,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
     setCustomSdPrompt(initial.sd);
     setCustomLxPrompt(initial.lx);
     setCustomFxPrompt(initial.fx);
+    setCustomKlPrompt(initial.kl);
   }, []);
 
   const handleResetCustomPrompts = () => {
@@ -484,6 +491,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       setCustomSdPrompt(initial.sd);
       setCustomLxPrompt(initial.lx);
       setCustomFxPrompt(initial.fx);
+      setCustomKlPrompt(initial.kl);
       setIsMjEdited(false);
       setIsNbEdited(false);
       setIsCfEdited(false);
@@ -491,6 +499,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       setIsSdEdited(false);
       setIsLxEdited(false);
       setIsFxEdited(false);
+      setIsKlEdited(false);
       showToast('기본 프롬프트로 초기화되었습니다.');
     }, 50);
   };
@@ -507,6 +516,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
   const activeSd = isSdEdited ? customSdPrompt : (customSdPrompt || prompts.sd);
   const activeLx = isLxEdited ? customLxPrompt : (customLxPrompt || prompts.lx);
   const activeFx = isFxEdited ? customFxPrompt : (customFxPrompt || prompts.fx);
+  const activeKl = isKlEdited ? customKlPrompt : (customKlPrompt || prompts.kl);
 
   return (
     <div className="model-sidebar" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
@@ -834,7 +844,27 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           />
         </div>
 
-        {(isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || customModelDesc) && (
+        {/* Kling Video */}
+        <div className="prompt-box" style={{ padding: '0.5rem' }}>
+          <div className="prompt-box-header" style={{ marginBottom: '2px' }}>
+            <span className="prompt-badge" style={{ backgroundColor: '#8b5cf6', color: '#ffffff', fontSize: '0.55rem' }}>Kling Video Model</span>
+            <button type="button" className="btn btn-text btn-sm" style={{ padding: '2px' }} onClick={() => copyToClipboard(activeKl, 'Kling Video')}>
+              <Copy size={10} />
+            </button>
+          </div>
+          <textarea
+            className="prompt-text"
+            value={activeKl}
+            onChange={(e) => {
+              setCustomKlPrompt(e.target.value);
+              setIsKlEdited(true);
+            }}
+            style={{ width: '100%', minHeight: '50px', border: 'none', background: 'transparent', fontSize: '0.725rem', fontFamily: 'monospace', resize: 'vertical', outline: 'none', padding: 0 }}
+            placeholder="Kling Video 프롬프트 편집..."
+          />
+        </div>
+
+        {(isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || customModelDesc) && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.125rem' }}>
             <button
               type="button"
