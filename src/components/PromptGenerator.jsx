@@ -115,6 +115,7 @@ export default function PromptGenerator({
     customLxPrompt = '',
     customFxPrompt = '',
     customKlPrompt = '',
+    customMxPrompt = '',
     isMjEdited = false,
     isNbEdited = false,
     isCfEdited = false,
@@ -122,7 +123,8 @@ export default function PromptGenerator({
     isSdEdited = false,
     isLxEdited = false,
     isFxEdited = false,
-    isKlEdited = false
+    isKlEdited = false,
+    isMxEdited = false
   } = frame;
 
   const buildStaticCameraDescription = (gear, lensMm, lensType) => {
@@ -215,7 +217,10 @@ export default function PromptGenerator({
     // Kling Video (Cinematic high definition motion)
     const kl = `A high-quality cinematic video clip showing ${storyText}, shot in ${shotEn} perspective with ${videoCameraMoveEn || 'fluid cinematic movement'}. Tone: ${toneEn}. Color palette: ${colorEn}. ${cameraSentence}, 4k resolution, smooth rendering, lifelike textures, realistic physics.`;
 
-    return { mj, nb, cf, gk, sd, lx, fx, kl };
+    // MiniMax Hailuo H3 (Practical action movie cinematic rendering)
+    const mx = `Realistic live-action cinematic movie shot, ${storyText}. Composition: ${shotEn}. Camera setup: ${cameraSentence}. Camera movement: ${videoCameraMoveEn || 'steady action motion'}. style: ${styleEn}. Lighting: ${toneEn}. Colors: ${colorEn}. Film grain, anamorphic lens, shallow depth of field, fluid organic motion, high quality render, 4k.`;
+
+    return { mj, nb, cf, gk, sd, lx, fx, kl, mx };
   };
 
   const localPrompts = compileLocalPrompts();
@@ -227,6 +232,7 @@ export default function PromptGenerator({
   const activeLx = customLxPrompt !== '' ? customLxPrompt : localPrompts.lx;
   const activeFx = customFxPrompt !== '' ? customFxPrompt : localPrompts.fx;
   const activeKl = customKlPrompt !== '' ? customKlPrompt : localPrompts.kl;
+  const activeMx = customMxPrompt !== '' ? customMxPrompt : localPrompts.mx;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -258,10 +264,10 @@ Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
 CRITICAL PROMPTING RULES:
 1. Prevent Camera/Lens Objects in Images: To stop the AI from drawing physical cameras or lenses in the scene, DO NOT mention nouns like "camera body", "camera model", "lens module", "Fujifilm GFX 100S", or "Canon L-series USM lens". Instead, describe the setup using brandless adjectival/prepositional filming style and optical properties (e.g., "photographed with medium-format aesthetics, utilizing shallow depth-of-field and soft out-of-focus background bokeh").
-2. No Video Motion in Static Prompts: For all static engines (Midjourney, NanoBanana, ComfyUI, Grok, Seedance), DO NOT include video movement terms (such as "slow rotation", "orbital motion", "zooming in", "panning", "tilting", "tracking"). Replace them with static terms (e.g. "steady camera perspective", "still photograph") or omit them entirely to prevent motion blur and duplicate objects. Only include dynamic motions in the LTX Video and Kling prompts.
+2. No Video Motion in Static Prompts: For all static engines (Midjourney, NanoBanana, ComfyUI, Grok, Seedance), DO NOT include video movement terms (such as "slow rotation", "orbital motion", "zooming in", "panning", "tilting", "tracking"). Replace them with static terms (e.g. "steady camera perspective", "still photograph") or omit them entirely to prevent motion blur and duplicate objects. Only include dynamic motions in the LTX Video, Kling, and MiniMax prompts.
 3. ComfyUI Z-Image Turbo Prompt Structure: The "comfyui" prompt MUST follow this exact natural language sentence structure: [Subject] -> [State] -> [Composition] -> [Lighting] -> [Atmosphere]. Do not write long tag lists. Example: "[Subject/Story details], [State/Action], [Composition/Framing], illuminated by [Lighting], rendered in [Style] style, [Camera/Lens optical description], highly detailed, masterpiece, sharp focus, 8k".
 
-Provide a JSON object containing exactly nine fields:
+Provide a JSON object containing exactly ten fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
 2. "midjourney": A prompt optimized for Midjourney (incorporating the brandless camera/lens rendering description, static framing only, ending with --ar ${aspectRatio} --v 6.0).
 3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, brandless optical properties, static composition, and lighting).
@@ -271,6 +277,7 @@ Provide a JSON object containing exactly nine fields:
 7. "ltxvideo": A prompt optimized for LTX Video (descriptive video script, focusing on smooth physical motion, camera lens zoom/perspective, and camera gear/lens type effects).
 8. "fluxedit": A prompt optimized for Flux Image Edit in ComfyUI (detailing edit/modify instructions to change the scene content to story description while maintaining high-fidelity aesthetics).
 9. "kling": A prompt optimized for Kling Video (cinematic video prompt emphasizing fluid realistic movement, camera focal lens dynamics, light, atmosphere, and high-fidelity textures).
+10. "minimax": A prompt optimized for MiniMax Hailuo H3 (cinematic movie trailer rendering, emphasizing rapid action progression, practical camera textures, restrained premium colors, and seamless physical motions).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
@@ -298,7 +305,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         const textResponse = data.candidates[0].content.parts[0].text;
         const parsed = JSON.parse(textResponse);
 
-        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui && parsed.grok && parsed.seedance && parsed.ltxvideo && parsed.fluxedit && parsed.kling) {
+        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui && parsed.grok && parsed.seedance && parsed.ltxvideo && parsed.fluxedit && parsed.kling && parsed.minimax) {
           const updateData = { storyEn: parsed.storyEn };
           
           if (!isMjEdited) updateData.customMjPrompt = parsed.midjourney;
@@ -309,6 +316,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
           if (!isLxEdited) updateData.customLxPrompt = parsed.ltxvideo;
           if (!isFxEdited) updateData.customFxPrompt = parsed.fluxedit;
           if (!isKlEdited) updateData.customKlPrompt = parsed.kling;
+          if (!isMxEdited) updateData.customMxPrompt = parsed.minimax;
 
           onChange(updateData);
           showToast('AI 번역 및 고도화 완료');
@@ -335,7 +343,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             isSdEdited: false,
             isLxEdited: false,
             isFxEdited: false,
-            isKlEdited: false
+            isKlEdited: false,
+            isMxEdited: false
           });
           showToast('영문 번역 완료 (MyMemory)');
         } else {
@@ -360,6 +369,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       customLxPrompt: '',
       customFxPrompt: '',
       customKlPrompt: '',
+      customMxPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
@@ -367,7 +377,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       isSdEdited: false,
       isLxEdited: false,
       isFxEdited: false,
-      isKlEdited: false
+      isKlEdited: false,
+      isMxEdited: false
     });
   };
 
@@ -657,7 +668,40 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         />
       </div>
 
-      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || customFxPrompt || customKlPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited) && (
+      {/* MiniMax H3 Box */}
+      <div className="prompt-box">
+        <div className="prompt-box-header">
+          <span className="prompt-badge" style={{ backgroundColor: '#06b6d4', color: '#ffffff', fontSize: '0.65rem' }}>MiniMax Hailuo H3</span>
+          <button 
+            type="button" 
+            className="btn btn-text btn-sm" 
+            style={{ padding: '2px' }}
+            onClick={() => copyToClipboard(activeMx, 'MiniMax')}
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+        <textarea
+          className="prompt-text"
+          value={activeMx}
+          onChange={(e) => onChange({ customMxPrompt: e.target.value, isMxEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '60px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="MiniMax Hailuo H3 프롬프트 편집..."
+        />
+      </div>
+
+      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || customFxPrompt || customKlPrompt || customMxPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"

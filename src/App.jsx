@@ -111,6 +111,7 @@ export default function App() {
       customLxPrompt: '',
       customFxPrompt: '',
       customKlPrompt: '',
+      customMxPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
@@ -118,7 +119,8 @@ export default function App() {
       isSdEdited: false,
       isLxEdited: false,
       isFxEdited: false,
-      isKlEdited: false
+      isKlEdited: false,
+      isMxEdited: false
     }
   ]);
   const [geminiApiKey, setGeminiApiKey] = useState('');
@@ -261,6 +263,7 @@ export default function App() {
       customLxPrompt: '',
       customFxPrompt: '',
       customKlPrompt: '',
+      customMxPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
@@ -268,7 +271,8 @@ export default function App() {
       isSdEdited: false,
       isLxEdited: false,
       isFxEdited: false,
-      isKlEdited: false
+      isKlEdited: false,
+      isMxEdited: false
     };
     setFrames([...frames, newFrame]);
     triggerToast('새로운 씬 컷이 추가되었습니다.');
