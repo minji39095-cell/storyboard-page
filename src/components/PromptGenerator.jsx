@@ -3,6 +3,8 @@ import { Copy, Sparkles, AlertCircle, Languages } from 'lucide-react';
 
 export const STYLES = {
   cinematic: { ko: '영화 스틸컷', en: 'Cinematic movie still, photorealistic, 8k resolution, shot on 35mm lens, highly detailed textures', noun: 'cinematic photograph' },
+  iphone_snap: { ko: '아이폰 일상 스냅 (iPhone Snap)', en: 'Shot on iPhone casual candid snapshot style, natural warm ambient lighting, authentic smartphone camera texture, subtle candid noise, realistic mobile photography', noun: 'iPhone snapshot photograph' },
+  samsung_hdr: { ko: '삼성 갤럭시 선명 화보 (Galaxy HDR)', en: 'Samsung Galaxy Ultra camera style, ultra-sharp detail, vibrant saturated color profile, crisp HDR dynamic range, vivid flagship smartphone photo', noun: 'Samsung Galaxy mobile photograph' },
   highend_ad: { ko: '하이엔드 광고 스타일', en: 'High-end luxury commercial advertisement style, sleek product lighting, clean minimalist composition, elegant studio lighting, ultra-sharp focus, premium color grading, sophisticated aesthetic', noun: 'high-end luxury commercial photograph' },
   anime: { ko: '애니메이션', en: 'Anime style, highly detailed digital illustration, vibrant colors, studio Ghibli aesthetic, clean lines', noun: 'anime studio illustration' },
   webtoon: { ko: '웹툰', en: 'Korean webtoon illustration style, line art, cell shaded, high quality manhwa cover art', noun: 'webtoon illustration' },
@@ -35,6 +37,8 @@ export const CAMERAS = {
 
 export const CAMERA_GEAR = {
   none: { ko: '기본 (장비 미지정)', en: '' },
+  iphone: { ko: '아이폰 감성 (Shot on iPhone)', en: 'casual shot on iPhone, authentic Apple computational photography, natural warm tones, realistic unpolished smartphone snapshot, subtle lens flare, lifelike candid texture' },
+  samsung: { ko: '삼성 갤럭시 감성 (Galaxy Ultra)', en: 'vibrant shot on Samsung Galaxy Ultra flagship smartphone camera, punchy saturated colors, ultra-crisp HDR, vivid sky and skin details, clean bright mobile photography look' },
   hasselblad: { ko: 'Hasselblad H6D (중형)', en: 'shot on Hasselblad H6D-100c' },
   leica: { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11' },
   fujifilm: { ko: 'Fujifilm GFX (후지)', en: 'shot on Fujifilm GFX 100S' },
@@ -68,6 +72,8 @@ export const LENS_TYPES = {
 export const TONES = {
   dreamy: { ko: '몽환적인', en: 'dreamy, ethereal atmosphere' },
   cinematic: { ko: '극적인 시네마틱', en: 'cinematic, dramatic mood' },
+  iphone_warm: { ko: '아이폰 내추럴 웜톤', en: 'natural warm everyday lighting, realistic iPhone warmth, soft highlights' },
+  samsung_vibrant: { ko: '삼성 비비드 HDR 톤', en: 'punchy vibrant colors, high dynamic range clarity, clean bright Samsung tone' },
   dark: { ko: '어둡고 음산한', en: 'dark, moody, ominous atmosphere' },
   bright: { ko: '밝고 화사한', en: 'bright, cheerful, vibrant mood' },
   sad: { ko: '슬프고 잔잔한', en: 'melancholic, sad, reflective tone' },
@@ -88,7 +94,7 @@ export const COLORS = {
 export default function PromptGenerator({ 
   frame, 
   onChange, 
-  geminiApiKey,
+  geminiApiKey, 
   showToast 
 }) {
   const [loading, setLoading] = useState(false);
@@ -116,6 +122,7 @@ export default function PromptGenerator({
     customFxPrompt = '',
     customKlPrompt = '',
     customMxPrompt = '',
+    customGptPrompt = '',
     isMjEdited = false,
     isNbEdited = false,
     isCfEdited = false,
@@ -124,11 +131,14 @@ export default function PromptGenerator({
     isLxEdited = false,
     isFxEdited = false,
     isKlEdited = false,
-    isMxEdited = false
+    isMxEdited = false,
+    isGptEdited = false
   } = frame;
 
   const buildStaticCameraDescription = (gear, lensMm, lensType) => {
     const gearEffects = {
+      iphone: 'authentic iPhone snapshot aesthetics with natural warm tones and realistic smartphone camera processing',
+      samsung: 'vibrant Samsung Galaxy Ultra smartphone photography with punchy colors and crisp HDR detail',
       hasselblad: 'medium-format photographic aesthetics',
       leica: 'rangefinder photographic quality',
       fujifilm: 'rich digital color fidelity',
@@ -220,7 +230,10 @@ export default function PromptGenerator({
     // MiniMax Hailuo H3 (Practical action movie cinematic rendering)
     const mx = `Realistic live-action cinematic movie shot, ${storyText}. Composition: ${shotEn}. Camera setup: ${cameraSentence}. Camera movement: ${videoCameraMoveEn || 'steady action motion'}. style: ${styleEn}. Lighting: ${toneEn}. Colors: ${colorEn}. Film grain, anamorphic lens, shallow depth of field, fluid organic motion, high quality render, 4k.`;
 
-    return { mj, nb, cf, gk, sd, lx, fx, kl, mx };
+    // ChatGPT / DALL-E 3 / GPT-4o Image
+    const gp = `A photorealistic image of ${storyText}. Style: ${styleEn}. Framing and composition: ${shotEn}. Atmosphere and lighting: ${toneEn}, ${colorEn}. ${cameraSentence}. Highly detailed authentic textures, natural lighting, high dynamic range, masterpiece, sharp focus, 8k resolution.`;
+
+    return { mj, nb, cf, gk, sd, lx, fx, kl, mx, gp };
   };
 
   const localPrompts = compileLocalPrompts();
@@ -233,6 +246,7 @@ export default function PromptGenerator({
   const activeFx = customFxPrompt !== '' ? customFxPrompt : localPrompts.fx;
   const activeKl = customKlPrompt !== '' ? customKlPrompt : localPrompts.kl;
   const activeMx = customMxPrompt !== '' ? customMxPrompt : localPrompts.mx;
+  const activeGpt = customGptPrompt !== '' ? customGptPrompt : localPrompts.gp;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -264,10 +278,10 @@ Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 
 CRITICAL PROMPTING RULES:
 1. Prevent Camera/Lens Objects in Images: To stop the AI from drawing physical cameras or lenses in the scene, DO NOT mention nouns like "camera body", "camera model", "lens module", "Fujifilm GFX 100S", or "Canon L-series USM lens". Instead, describe the setup using brandless adjectival/prepositional filming style and optical properties (e.g., "photographed with medium-format aesthetics, utilizing shallow depth-of-field and soft out-of-focus background bokeh").
-2. No Video Motion in Static Prompts: For all static engines (Midjourney, NanoBanana, ComfyUI, Grok, Seedance), DO NOT include video movement terms (such as "slow rotation", "orbital motion", "zooming in", "panning", "tilting", "tracking"). Replace them with static terms (e.g. "steady camera perspective", "still photograph") or omit them entirely to prevent motion blur and duplicate objects. Only include dynamic motions in the LTX Video, Kling, and MiniMax prompts.
+2. No Video Motion in Static Prompts: For all static engines (Midjourney, NanoBanana, ComfyUI, Grok, Seedance, GPT), DO NOT include video movement terms (such as "slow rotation", "orbital motion", "zooming in", "panning", "tilting", "tracking"). Replace them with static terms (e.g. "steady camera perspective", "still photograph") or omit them entirely to prevent motion blur and duplicate objects. Only include dynamic motions in the LTX Video, Kling, and MiniMax prompts.
 3. ComfyUI Z-Image Turbo Prompt Structure: The "comfyui" prompt MUST follow this exact natural language sentence structure: [Subject] -> [State] -> [Composition] -> [Lighting] -> [Atmosphere]. Do not write long tag lists. Example: "[Subject/Story details], [State/Action], [Composition/Framing], illuminated by [Lighting], rendered in [Style] style, [Camera/Lens optical description], highly detailed, masterpiece, sharp focus, 8k".
 
-Provide a JSON object containing exactly ten fields:
+Provide a JSON object containing exactly eleven fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
 2. "midjourney": A prompt optimized for Midjourney (incorporating the brandless camera/lens rendering description, static framing only, ending with --ar ${aspectRatio} --v 6.0).
 3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, brandless optical properties, static composition, and lighting).
@@ -278,6 +292,7 @@ Provide a JSON object containing exactly ten fields:
 8. "fluxedit": A prompt optimized for Flux Image Edit in ComfyUI (detailing edit/modify instructions to change the scene content to story description while maintaining high-fidelity aesthetics).
 9. "kling": A prompt optimized for Kling Video (cinematic video prompt emphasizing fluid realistic movement, camera focal lens dynamics, light, atmosphere, and high-fidelity textures).
 10. "minimax": A prompt optimized for MiniMax Hailuo H3 (cinematic movie trailer rendering, emphasizing rapid action progression, practical camera textures, restrained premium colors, and seamless physical motions).
+11. "gpt": A prompt optimized for ChatGPT / GPT-4o / DALL-E 3 (a cohesive natural descriptive paragraph detailing subject, scene layout, lighting, style, and realistic photography aesthetic).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
@@ -305,7 +320,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         const textResponse = data.candidates[0].content.parts[0].text;
         const parsed = JSON.parse(textResponse);
 
-        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui && parsed.grok && parsed.seedance && parsed.ltxvideo && parsed.fluxedit && parsed.kling && parsed.minimax) {
+        if (parsed.storyEn && parsed.midjourney && parsed.nanobanana && parsed.comfyui && parsed.grok && parsed.seedance && parsed.ltxvideo && parsed.fluxedit && parsed.kling && parsed.minimax && parsed.gpt) {
           const updateData = { storyEn: parsed.storyEn };
           
           if (!isMjEdited) updateData.customMjPrompt = parsed.midjourney;
@@ -317,6 +332,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
           if (!isFxEdited) updateData.customFxPrompt = parsed.fluxedit;
           if (!isKlEdited) updateData.customKlPrompt = parsed.kling;
           if (!isMxEdited) updateData.customMxPrompt = parsed.minimax;
+          if (!isGptEdited) updateData.customGptPrompt = parsed.gpt;
 
           onChange(updateData);
           showToast('AI 번역 및 고도화 완료');
@@ -344,7 +360,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             isLxEdited: false,
             isFxEdited: false,
             isKlEdited: false,
-            isMxEdited: false
+            isMxEdited: false,
+            isGptEdited: false
           });
           showToast('영문 번역 완료 (MyMemory)');
         } else {
@@ -370,6 +387,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       customFxPrompt: '',
       customKlPrompt: '',
       customMxPrompt: '',
+      customGptPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
@@ -378,7 +396,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       isLxEdited: false,
       isFxEdited: false,
       isKlEdited: false,
-      isMxEdited: false
+      isMxEdited: false,
+      isGptEdited: false
     });
   };
 
@@ -701,7 +720,40 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         />
       </div>
 
-      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || customFxPrompt || customKlPrompt || customMxPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited) && (
+      {/* GPT / ChatGPT DALL-E Box */}
+      <div className="prompt-box">
+        <div className="prompt-box-header">
+          <span className="prompt-badge" style={{ backgroundColor: '#10a37f', color: '#ffffff', fontSize: '0.65rem' }}>ChatGPT (DALL-E 3 / GPT-4o)</span>
+          <button 
+            type="button" 
+            className="btn btn-text btn-sm" 
+            style={{ padding: '2px' }}
+            onClick={() => copyToClipboard(activeGpt, 'ChatGPT')}
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+        <textarea
+          className="prompt-text"
+          value={activeGpt}
+          onChange={(e) => onChange({ customGptPrompt: e.target.value, isGptEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '60px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="ChatGPT / DALL-E 프롬프트 편집..."
+        />
+      </div>
+
+      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || customFxPrompt || customKlPrompt || customMxPrompt || customGptPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited || isGptEdited) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"

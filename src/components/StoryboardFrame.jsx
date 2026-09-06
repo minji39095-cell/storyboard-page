@@ -184,6 +184,7 @@ export default function StoryboardFrame({
     if (!frame.isFxEdited && !('customFxPrompt' in updatedFields)) clearedPrompts.customFxPrompt = '';
     if (!frame.isKlEdited && !('customKlPrompt' in updatedFields)) clearedPrompts.customKlPrompt = '';
     if (!frame.isMxEdited && !('customMxPrompt' in updatedFields)) clearedPrompts.customMxPrompt = '';
+    if (!frame.isGptEdited && !('customGptPrompt' in updatedFields)) clearedPrompts.customGptPrompt = '';
 
     onUpdate(frame.id, { ...updatedFields, ...clearedPrompts });
   };

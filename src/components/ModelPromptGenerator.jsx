@@ -105,6 +105,8 @@ const DETAILS = [
 ];
 
 const LIGHTS = [
+  { ko: '아이폰 자연광 스냅 조명', en: 'natural indoor-outdoor ambient smartphone lighting, warm realistic iPhone tone' },
+  { ko: '삼성 선명 HDR 조명', en: 'clean high dynamic range bright mobile illumination, punchy clarity' },
   { ko: '하이패션 화보 조명 (Editorial)', en: 'high-fashion editorial photography lighting, soft high-contrast studio shadows' },
   { ko: '렘브란트 라이트 (명암)', en: 'soft side Rembrandt lighting, dramatic shadows' },
   { ko: '골든 아워 자연광 (따뜻함)', en: 'warm golden hour sunlight, natural diffused light' },
@@ -146,6 +148,8 @@ const ACCESSORIES = [
 ];
 
 const CAMERAS = [
+  { ko: '아이폰 감성 (Shot on iPhone)', en: 'casual shot on iPhone' },
+  { ko: '삼성 갤럭시 감성 (Galaxy Ultra)', en: 'vibrant shot on Samsung Galaxy Ultra' },
   { ko: 'Hasselblad H6D (중형)', en: 'shot on Hasselblad H6D-100c' },
   { ko: 'Leica M11 (라이카)', en: 'shot on Leica M11' },
   { ko: 'Fujifilm GFX (후지)', en: 'shot on Fujifilm GFX 100S' },
@@ -201,7 +205,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [loading, setLoading] = useState(false);
 
   // Main assembled prompts
-  const [prompts, setPrompts] = useState({ mj: '', nb: '', cf: '', gk: '', sd: '', lx: '', fx: '', kl: '', mx: '' });
+  const [prompts, setPrompts] = useState({ mj: '', nb: '', cf: '', gk: '', sd: '', lx: '', fx: '', kl: '', mx: '', gp: '' });
 
   // Custom manually edited prompt fields
   const [customMjPrompt, setCustomMjPrompt] = useState('');
@@ -213,6 +217,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [customFxPrompt, setCustomFxPrompt] = useState('');
   const [customKlPrompt, setCustomKlPrompt] = useState('');
   const [customMxPrompt, setCustomMxPrompt] = useState('');
+  const [customGptPrompt, setCustomGptPrompt] = useState('');
 
   // Dirty edit tracking
   const [isMjEdited, setIsMjEdited] = useState(false);
@@ -224,9 +229,12 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [isFxEdited, setIsFxEdited] = useState(false);
   const [isKlEdited, setIsKlEdited] = useState(false);
   const [isMxEdited, setIsMxEdited] = useState(false);
+  const [isGptEdited, setIsGptEdited] = useState(false);
 
   const buildStaticCameraDescription = (gear, lensMm, lensType) => {
     const gearEffects = {
+      iphone: 'authentic iPhone snapshot aesthetics with natural warm tones and realistic smartphone camera processing',
+      samsung: 'vibrant Samsung Galaxy Ultra smartphone photography with punchy colors and crisp HDR detail',
       hasselblad: 'medium-format photographic aesthetics',
       leica: 'rangefinder photographic quality',
       fujifilm: 'rich digital color fidelity',
@@ -298,6 +306,8 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
 
     // Map selected options to keys
     const cameraMap = {
+      '아이폰 감성 (Shot on iPhone)': 'iphone',
+      '삼성 갤럭시 감성 (Galaxy Ultra)': 'samsung',
       'Hasselblad H6D (중형)': 'hasselblad',
       'Leica M11 (라이카)': 'leica',
       'Fujifilm GFX (후지)': 'fujifilm',
@@ -371,7 +381,10 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     // MiniMax Video
     const mx = `Realistic cinematic live-action video clip of a ${subjectEn}${posePart}, captured with ${compEn} framing. Style: modern cinematic look. Details: ${hairEn}, ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}${exprEn}${descPart}. Under ${lightEn} with a backdrop of ${bgEn}. Camera setup: ${cameraSentence}. Fluid organic motion, ultra-detailed skin textures, film grain, premium tone, 4k resolution.`;
 
-    return { mj, nb, cf, gk, sd, lx, fx, kl, mx };
+    // ChatGPT / DALL-E 3
+    const gp = `A photorealistic portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}. Camera setup: ${cameraSentence}. Highly detailed natural skin texture, authentic lighting, masterpiece quality, 8k resolution.`;
+
+    return { mj, nb, cf, gk, sd, lx, fx, kl, mx, gp };
   };
 
   const handleAssembleAndTranslate = async () => {
@@ -439,6 +452,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       if (!isFxEdited) setCustomFxPrompt(compiled.fx);
       if (!isKlEdited) setCustomKlPrompt(compiled.kl);
       if (!isMxEdited) setCustomMxPrompt(compiled.mx);
+      if (!isGptEdited) setCustomGptPrompt(compiled.gp);
 
       // Update baseline prompts
       setPrompts(compiled);
@@ -464,6 +478,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
     setCustomFxPrompt(initial.fx);
     setCustomKlPrompt(initial.kl);
     setCustomMxPrompt(initial.mx);
+    setCustomGptPrompt(initial.gp);
   }, []);
 
   const handleResetCustomPrompts = () => {
@@ -500,6 +515,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       setCustomFxPrompt(initial.fx);
       setCustomKlPrompt(initial.kl);
       setCustomMxPrompt(initial.mx);
+      setCustomGptPrompt(initial.gp);
       setIsMjEdited(false);
       setIsNbEdited(false);
       setIsCfEdited(false);
@@ -509,6 +525,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       setIsFxEdited(false);
       setIsKlEdited(false);
       setIsMxEdited(false);
+      setIsGptEdited(false);
       showToast('기본 프롬프트로 초기화되었습니다.');
     }, 50);
   };
@@ -527,6 +544,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
   const activeFx = isFxEdited ? customFxPrompt : (customFxPrompt || prompts.fx);
   const activeKl = isKlEdited ? customKlPrompt : (customKlPrompt || prompts.kl);
   const activeMx = isMxEdited ? customMxPrompt : (customMxPrompt || prompts.mx);
+  const activeGpt = isGptEdited ? customGptPrompt : (customGptPrompt || prompts.gp);
 
   return (
     <div className="model-sidebar" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
@@ -894,7 +912,27 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           />
         </div>
 
-        {(isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited || customModelDesc) && (
+        {/* ChatGPT DALL-E */}
+        <div className="prompt-box" style={{ padding: '0.5rem' }}>
+          <div className="prompt-box-header" style={{ marginBottom: '2px' }}>
+            <span className="prompt-badge" style={{ backgroundColor: '#10a37f', color: '#ffffff', fontSize: '0.55rem' }}>ChatGPT (DALL-E 3) Model</span>
+            <button type="button" className="btn btn-text btn-sm" style={{ padding: '2px' }} onClick={() => copyToClipboard(activeGpt, 'ChatGPT')}>
+              <Copy size={10} />
+            </button>
+          </div>
+          <textarea
+            className="prompt-text"
+            value={activeGpt}
+            onChange={(e) => {
+              setCustomGptPrompt(e.target.value);
+              setIsGptEdited(true);
+            }}
+            style={{ width: '100%', minHeight: '50px', border: 'none', background: 'transparent', fontSize: '0.725rem', fontFamily: 'monospace', resize: 'vertical', outline: 'none', padding: 0 }}
+            placeholder="ChatGPT / DALL-E 프롬프트 편집..."
+          />
+        </div>
+
+        {(isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited || isGptEdited || customModelDesc) && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.125rem' }}>
             <button
               type="button"
