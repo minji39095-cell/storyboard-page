@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Trash2, PenTool, Upload, Image as ImageIcon, X, Sparkles, AlertCircle } from 'lucide-react';
 import DrawingCanvas from './DrawingCanvas';
-import PromptGenerator, { STYLES, SHOTS, CAMERAS, TONES, COLORS, CAMERA_GEAR, LENS_MM, LENS_TYPES } from './PromptGenerator';
+import PromptGenerator, { STYLES, SHOTS, CAMERAS, TONES, COLORS, CAMERA_GEAR, LENS_MM, LENS_TYPES, COLOR_GRADING_OPTIONS } from './PromptGenerator';
 
 const AD_PRESETS = {
   cosmetics: {
@@ -185,6 +185,7 @@ export default function StoryboardFrame({
     if (!frame.isKlEdited && !('customKlPrompt' in updatedFields)) clearedPrompts.customKlPrompt = '';
     if (!frame.isMxEdited && !('customMxPrompt' in updatedFields)) clearedPrompts.customMxPrompt = '';
     if (!frame.isGptEdited && !('customGptPrompt' in updatedFields)) clearedPrompts.customGptPrompt = '';
+    if (!frame.isCgEdited && !('customCgPrompt' in updatedFields)) clearedPrompts.customCgPrompt = '';
 
     onUpdate(frame.id, { ...updatedFields, ...clearedPrompts });
   };
@@ -663,6 +664,20 @@ Provide ONLY the final script text. Do not include any explanations, code block 
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Color Grading / De-cast Option (Full Width) */}
+        <div className="form-group">
+          <label style={{ color: '#059669', fontWeight: 700 }}>시네마 색보정 / 색끼 제거 (De-cast & Color Grading)</label>
+          <select
+            value={frame.colorGrade || 'none'}
+            onChange={(e) => handleUpdate({ colorGrade: e.target.value })}
+            style={{ width: '100%', borderColor: frame.colorGrade && frame.colorGrade !== 'none' ? '#059669' : undefined }}
+          >
+            {Object.entries(COLOR_GRADING_OPTIONS).map(([key, val]) => (
+              <option key={key} value={key}>{val.ko}</option>
+            ))}
+          </select>
         </div>
 
         {/* AI Prompt Generator */}

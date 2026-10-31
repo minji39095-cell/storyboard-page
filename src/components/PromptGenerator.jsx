@@ -88,7 +88,46 @@ export const COLORS = {
   cyberpunk: { ko: '네온 사이버펑크', en: 'neon cyberpunk colors, electric violet and cyan' },
   pastel: { ko: '부드러운 파스텔', en: 'soft pastel color tones' },
   highcontrast: { ko: '고대비', en: 'high contrast color grading' },
-  natural: { ko: '자연스러운 톤', en: 'natural earth tones' }
+  natural: { ko: '자연스러운 톤', en: 'natural earth tones' },
+  true_natural: { ko: '색끼 제거 & 트루 내추럴 (True Natural)', en: 'neutralized color cast, true natural daylight balance, accurate skin tones, deep neutral blacks, clean unclipped whites' }
+};
+
+export const COLOR_GRADING_OPTIONS = {
+  none: {
+    ko: '기본 (별도 색보정 미지정)',
+    en: '',
+    editPrompt: ''
+  },
+  decast_natural: {
+    ko: '시네마 색끼 제거 & 트루 내추럴 (De-cast & True Natural)',
+    en: 'neutralized color cast, true natural light balance, removed green/amber/teal midtone tints, accurate Korean skin tones, deep neutral blacks with shadow detail, clean unclipped whites, expanded dynamic range and local contrast, fine texture in skin/fabric/hair, modern high-end digital cinema look',
+    editPrompt: 'Neutralize the heavy color cast in this film still and restore how the scene would look under true natural light. Remove the green, amber, and teal tints from the midtones while preserving the original direction and quality of the lighting. Recover accurate Korean skin tones, deep neutral blacks with visible shadow detail, and clean whites without clipping. Expand dynamic range and local contrast, and restore fine texture in skin, fabric, and hair to a modern high-end digital cinema look. Preserve every person\'s facial features, face shape, and identity exactly as in the source — do not redraw or replace any face. Keep the exact same frame, composition, subject, and expression, and do not add or remove any objects, reflections, or scenery — output the photograph itself, not an AI-generated illustration.'
+  },
+  korean_skin_clean: {
+    ko: '한국인 피부톤 복원 & 맑은 화이트밸런스 (K-Skin Pure)',
+    en: 'accurate natural Korean skin tone calibration, neutralized yellow and red color casts, pure daylight white balance, soft highlight roll-off, rich micro-contrast in skin pores and hair strands, clean commercial color grading',
+    editPrompt: 'Neutralize any unnatural yellow, orange, or muddy color casts and calibrate the image for accurate, clear Korean skin tones under pure daylight white balance. Preserve the original lighting direction while cleaning up muddiness in the midtones, ensuring deep neutral shadows and smooth, unclipped highlights. Restore ultra-fine natural textures in skin pores, eyelashes, hair, and fabric without artificial smoothing. Preserve every person\'s facial features, face shape, and identity exactly as in the source — do not redraw or replace any face. Keep the exact same frame, composition, subject, and expression, and do not add or remove any objects, reflections, or scenery — output the photograph itself, not an AI-generated illustration.'
+  },
+  log_to_arri: {
+    ko: '플랫/로그 복원 → ARRI Rec.709 (Log to Cinema)',
+    en: 'ARRI Alexa Rec.709 color science, expanded dynamic range from flat log profile, rich neutral blacks, creamy highlight roll-off, true-to-life color separation, high-end digital cinema local contrast',
+    editPrompt: 'Convert this flat or washed-out film frame into a full-contrast modern digital cinema grade using ARRI Rec.709 color science. Expand the dynamic range and local contrast to establish deep, rich neutral blacks with visible shadow detail and smooth, unclipped highlight roll-off. Restore natural color separation, lifelike Korean skin tones, and crisp fine textures in skin, fabric, and hair while preserving the original lighting direction. Preserve every person\'s facial features, face shape, and identity exactly as in the source — do not redraw or replace any face. Keep the exact same frame, composition, subject, and expression, and do not add or remove any objects — output the photograph itself, not an AI-generated illustration.'
+  },
+  warm_cast_removal: {
+    ko: '실내 황색/텅스텐 노란끼 중화 (Tungsten Neutralize)',
+    en: 'neutralized warm tungsten and amber indoor color cast, balanced neutral white point, true natural skin tones, crisp shadow separation, clean modern commercial look',
+    editPrompt: 'Neutralize the heavy warm tungsten, orange, and amber color cast in this indoor scene and restore balanced, true-to-life colors while keeping the original ambient light direction and quality. Recover accurate Korean skin tones, clean neutral whites without clipping, and deep neutral blacks with visible shadow detail. Expand local contrast and restore fine texture in skin, fabric, and hair to a modern high-end digital cinema look. Preserve every person\'s facial features, face shape, and identity exactly as in the source — do not redraw or replace any face. Keep the exact same frame, composition, subject, and expression, and do not add or remove any objects — output the photograph itself, not an AI-generated illustration.'
+  },
+  green_teal_removal: {
+    ko: '형광등 녹색/틸(Teal) 색바램 제거 (Fluorescent De-tint)',
+    en: 'removed green and cyan-teal fluorescent midtone tint, restored natural spectrum lighting, accurate skin tone fidelity, deep neutral blacks, high-definition cinema texture',
+    editPrompt: 'Remove the unnatural green, cyan, and teal fluorescent tints from the midtones and shadows of this film still, restoring how the scene would look under true full-spectrum natural light. Recover accurate Korean skin tones, deep neutral blacks with visible shadow detail, and clean whites without clipping. Expand dynamic range and local contrast, and restore fine texture in skin, fabric, and hair to a modern high-end digital cinema look. Preserve every person\'s facial features, face shape, and identity exactly as in the source — do not redraw or replace any face. Keep the exact same frame, composition, subject, and expression, and do not add or remove any objects — output the photograph itself, not an AI-generated illustration.'
+  },
+  bleach_commercial: {
+    ko: '하이엔드 광고 저채도 고대비 (Commercial Crisp)',
+    en: 'high-end luxury commercial color grade, neutralized muddiness, deep punchy neutral blacks, pristine whites, refined desaturated midtones with accurate skin tone preservation, razor-sharp micro-texture',
+    editPrompt: 'Apply a modern high-end luxury commercial color grade to this image by neutralizing muddy midtone casts, deepening black levels with visible shadow detail, and recovering clean whites without clipping. Expand dynamic range and local contrast to restore fine texture in skin, fabric, and hair while keeping Korean skin tones natural and accurate. Preserve every person\'s facial features, face shape, and identity exactly as in the source — do not redraw or replace any face. Keep the exact same frame, composition, subject, and expression, and do not add or remove any objects, reflections, or scenery — output the photograph itself, not an AI-generated illustration.'
+  }
 };
 
 export default function PromptGenerator({ 
@@ -112,6 +151,7 @@ export default function PromptGenerator({
     lensType = 'none',
     tone = 'cinematic', 
     colorPalette = 'amber', 
+    colorGrade = 'none',
     aspectRatio = '16:9',
     customMjPrompt = '',
     customNbPrompt = '',
@@ -123,6 +163,7 @@ export default function PromptGenerator({
     customKlPrompt = '',
     customMxPrompt = '',
     customGptPrompt = '',
+    customCgPrompt = '',
     isMjEdited = false,
     isNbEdited = false,
     isCfEdited = false,
@@ -132,7 +173,8 @@ export default function PromptGenerator({
     isFxEdited = false,
     isKlEdited = false,
     isMxEdited = false,
-    isGptEdited = false
+    isGptEdited = false,
+    isCgEdited = false
   } = frame;
 
   const buildStaticCameraDescription = (gear, lensMm, lensType) => {
@@ -187,6 +229,9 @@ export default function PromptGenerator({
     const shotEn = SHOTS[shotType]?.en || '';
     const toneEn = TONES[tone]?.en || '';
     const colorEn = COLORS[colorPalette]?.en || '';
+    const gradeInfo = COLOR_GRADING_OPTIONS[colorGrade] || COLOR_GRADING_OPTIONS.none;
+    const gradeEn = gradeInfo.en || '';
+    const gradeSuffix = gradeEn ? `, ${gradeEn}` : '';
     const storyText = storyEn || story.trim() || 'A simple scene';
 
     // 1. Static camera move: Filter out video motions for static engines to prevent motion blur/composition issues
@@ -202,38 +247,43 @@ export default function PromptGenerator({
     const gearSentence = cameraSentence ? ` ${cameraSentence}.` : '';
 
     // Midjourney
-    const mj = `${storyText}, ${styleEn}, ${shotEn}, ${staticCameraEn ? staticCameraEn + ', ' : ''}${toneEn}, ${colorEn}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
+    const mj = `${storyText}, ${styleEn}, ${shotEn}, ${staticCameraEn ? staticCameraEn + ', ' : ''}${toneEn}, ${colorEn}${gradeSuffix}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
 
     // NanoBanana
-    const nb = `A highly detailed, raw realistic photograph. The subject is ${storyText}. The composition is a ${shotEn}${staticCameraEn ? ' with a ' + staticCameraEn : ''}.${gearSentence} The general mood is ${toneEn}, rendered in a ${colorEn}.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is ${storyText}. The composition is a ${shotEn}${staticCameraEn ? ' with a ' + staticCameraEn : ''}.${gearSentence} The general mood is ${toneEn}, rendered in a ${colorEn}${gradeEn ? '. Color grading: ' + gradeEn : ''}.`;
 
     // ComfyUI Z-Image Turbo: Subject -> State -> Composition -> Lighting -> Atmosphere
     const compPart = [shotEn, staticCameraEn].filter(Boolean).join(', ');
-    const cf = `${storyText}, ${compPart || 'clear framing'}, illuminated by ${toneEn} and ${colorEn}, rendered in ${styleEn} style, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
+    const cf = `${storyText}, ${compPart || 'clear framing'}, illuminated by ${toneEn} and ${colorEn}${gradeSuffix}, rendered in ${styleEn} style, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
 
     // ComfyUI Grok
-    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}${staticCameraEn ? ', ' + staticCameraEn : ''}. Atmosphere: ${toneEn}. Colors: ${colorEn}. Camera setup: ${cameraSentence}. Realism, high resolution.`;
+    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}${staticCameraEn ? ', ' + staticCameraEn : ''}. Atmosphere: ${toneEn}. Colors: ${colorEn}${gradeSuffix}. Camera setup: ${cameraSentence}. Realism, high resolution.`;
 
     // Seedance
-    const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera: ${staticCameraEn || 'steady'}, tone: ${toneEn}, color grade: ${colorEn}${gearSuffix}, high quality cinematic render, 8k resolution`;
+    const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera: ${staticCameraEn || 'steady'}, tone: ${toneEn}, color grade: ${colorEn}${gradeSuffix}${gearSuffix}, high quality cinematic render, 8k resolution`;
 
     // LTX Video (Dynamic video motion allowed)
     const videoCameraDesc = `filmed using professional cinema equipment with ${videoCameraMoveEn || 'steady tracking'}`;
-    const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${videoCameraMoveEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}. ${videoCameraDesc}. Smooth motion, highly detailed, photorealistic render.`;
+    const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${videoCameraMoveEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}${gradeSuffix}. ${videoCameraDesc}. Smooth motion, highly detailed, photorealistic render.`;
 
     // Flux Image Edit ComfyUI
-    const fx = `flux image edit, style of ${styleEn}, modify scene focus to ${storyText}, keeping composition framing as ${shotEn}, atmosphere ${toneEn}, colors ${colorEn}, ${cameraSentence}, high fidelity image editing, realistic raw photography, masterpiece`;
+    const fx = gradeInfo.editPrompt
+      ? `${gradeInfo.editPrompt} Scene context: ${storyText}, ${shotEn}, ${cameraSentence}.`
+      : `flux image edit, style of ${styleEn}, modify scene focus to ${storyText}, keeping composition framing as ${shotEn}, atmosphere ${toneEn}, colors ${colorEn}, ${cameraSentence}, high fidelity image editing, realistic raw photography, masterpiece`;
 
     // Kling Video (Cinematic high definition motion)
-    const kl = `A high-quality cinematic video clip showing ${storyText}, shot in ${shotEn} perspective with ${videoCameraMoveEn || 'fluid cinematic movement'}. Tone: ${toneEn}. Color palette: ${colorEn}. ${cameraSentence}, 4k resolution, smooth rendering, lifelike textures, realistic physics.`;
+    const kl = `A high-quality cinematic video clip showing ${storyText}, shot in ${shotEn} perspective with ${videoCameraMoveEn || 'fluid cinematic movement'}. Tone: ${toneEn}. Color palette: ${colorEn}${gradeSuffix}. ${cameraSentence}, 4k resolution, smooth rendering, lifelike textures, realistic physics.`;
 
     // MiniMax Hailuo H3 (Practical action movie cinematic rendering)
-    const mx = `Realistic live-action cinematic movie shot, ${storyText}. Composition: ${shotEn}. Camera setup: ${cameraSentence}. Camera movement: ${videoCameraMoveEn || 'steady action motion'}. style: ${styleEn}. Lighting: ${toneEn}. Colors: ${colorEn}. Film grain, anamorphic lens, shallow depth of field, fluid organic motion, high quality render, 4k.`;
+    const mx = `Realistic live-action cinematic movie shot, ${storyText}. Composition: ${shotEn}. Camera setup: ${cameraSentence}. Camera movement: ${videoCameraMoveEn || 'steady action motion'}. style: ${styleEn}. Lighting: ${toneEn}. Colors: ${colorEn}${gradeSuffix}. Film grain, anamorphic lens, shallow depth of field, fluid organic motion, high quality render, 4k.`;
 
     // ChatGPT / DALL-E 3 / GPT-4o Image
-    const gp = `A photorealistic image of ${storyText}. Style: ${styleEn}. Framing and composition: ${shotEn}. Atmosphere and lighting: ${toneEn}, ${colorEn}. ${cameraSentence}. Highly detailed authentic textures, natural lighting, high dynamic range, masterpiece, sharp focus, 8k resolution.`;
+    const gp = `A photorealistic image of ${storyText}. Style: ${styleEn}. Framing and composition: ${shotEn}. Atmosphere and lighting: ${toneEn}, ${colorEn}${gradeSuffix}. ${cameraSentence}. Highly detailed authentic textures, natural lighting, high dynamic range, masterpiece, sharp focus, 8k resolution.`;
 
-    return { mj, nb, cf, gk, sd, lx, fx, kl, mx, gp };
+    // Cinema Color Grading & De-cast Restoration Prompt (Standalone)
+    const cg = gradeInfo.editPrompt || COLOR_GRADING_OPTIONS.decast_natural.editPrompt;
+
+    return { mj, nb, cf, gk, sd, lx, fx, kl, mx, gp, cg };
   };
 
   const localPrompts = compileLocalPrompts();
@@ -247,6 +297,7 @@ export default function PromptGenerator({
   const activeKl = customKlPrompt !== '' ? customKlPrompt : localPrompts.kl;
   const activeMx = customMxPrompt !== '' ? customMxPrompt : localPrompts.mx;
   const activeGpt = customGptPrompt !== '' ? customGptPrompt : localPrompts.gp;
+  const activeCg = customCgPrompt !== '' ? customCgPrompt : localPrompts.cg;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -275,13 +326,15 @@ Lens mm: "${LENS_MM[lensMm]?.ko} (${LENS_MM[lensMm]?.en})"
 Lens Type/Model: "${LENS_TYPES[lensType]?.ko} (${LENS_TYPES[lensType]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
+Color Grading / De-cast Option: "${COLOR_GRADING_OPTIONS[colorGrade]?.ko || '기본'} (${COLOR_GRADING_OPTIONS[colorGrade]?.en || 'standard natural color grading'})"
 
 CRITICAL PROMPTING RULES:
 1. Prevent Camera/Lens Objects in Images: To stop the AI from drawing physical cameras or lenses in the scene, DO NOT mention nouns like "camera body", "camera model", "lens module", "Fujifilm GFX 100S", or "Canon L-series USM lens". Instead, describe the setup using brandless adjectival/prepositional filming style and optical properties (e.g., "photographed with medium-format aesthetics, utilizing shallow depth-of-field and soft out-of-focus background bokeh").
 2. No Video Motion in Static Prompts: For all static engines (Midjourney, NanoBanana, ComfyUI, Grok, Seedance, GPT), DO NOT include video movement terms (such as "slow rotation", "orbital motion", "zooming in", "panning", "tilting", "tracking"). Replace them with static terms (e.g. "steady camera perspective", "still photograph") or omit them entirely to prevent motion blur and duplicate objects. Only include dynamic motions in the LTX Video, Kling, and MiniMax prompts.
 3. ComfyUI Z-Image Turbo Prompt Structure: The "comfyui" prompt MUST follow this exact natural language sentence structure: [Subject] -> [State] -> [Composition] -> [Lighting] -> [Atmosphere]. Do not write long tag lists. Example: "[Subject/Story details], [State/Action], [Composition/Framing], illuminated by [Lighting], rendered in [Style] style, [Camera/Lens optical description], highly detailed, masterpiece, sharp focus, 8k".
+4. Color Grading / De-cast Prompt ("colorgrade"): Must follow a strict 5-layer image-to-image color restoration structure: (1) Neutralize heavy color casts (green, amber, teal tints in midtones) and restore true natural light while preserving original lighting direction, (2) Recover accurate Korean skin tones, deep neutral blacks with visible shadow detail, and clean unclipped whites, (3) Expand dynamic range, local contrast, and fine texture in skin, fabric, and hair to a modern high-end digital cinema look, (4) Strictly preserve every person's facial features, face shape, and identity without redrawing, (5) Keep the exact same frame, composition, subject, and expression without adding or removing objects — output the photograph itself, not an AI illustration.
 
-Provide a JSON object containing exactly eleven fields:
+Provide a JSON object containing exactly twelve fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
 2. "midjourney": A prompt optimized for Midjourney (incorporating the brandless camera/lens rendering description, static framing only, ending with --ar ${aspectRatio} --v 6.0).
 3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, brandless optical properties, static composition, and lighting).
@@ -293,6 +346,7 @@ Provide a JSON object containing exactly eleven fields:
 9. "kling": A prompt optimized for Kling Video (cinematic video prompt emphasizing fluid realistic movement, camera focal lens dynamics, light, atmosphere, and high-fidelity textures).
 10. "minimax": A prompt optimized for MiniMax Hailuo H3 (cinematic movie trailer rendering, emphasizing rapid action progression, practical camera textures, restrained premium colors, and seamless physical motions).
 11. "gpt": A prompt optimized for ChatGPT / GPT-4o / DALL-E 3 (a cohesive natural descriptive paragraph detailing subject, scene layout, lighting, style, and realistic photography aesthetic).
+12. "colorgrade": A prompt optimized for Cinema Color Grading & De-cast Restoration (following Rule 4).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
@@ -333,6 +387,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
           if (!isKlEdited) updateData.customKlPrompt = parsed.kling;
           if (!isMxEdited) updateData.customMxPrompt = parsed.minimax;
           if (!isGptEdited) updateData.customGptPrompt = parsed.gpt;
+          if (!isCgEdited && parsed.colorgrade) updateData.customCgPrompt = parsed.colorgrade;
 
           onChange(updateData);
           showToast('AI 번역 및 고도화 완료');
@@ -361,7 +416,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             isFxEdited: false,
             isKlEdited: false,
             isMxEdited: false,
-            isGptEdited: false
+            isGptEdited: false,
+            isCgEdited: false
           });
           showToast('영문 번역 완료 (MyMemory)');
         } else {
@@ -388,6 +444,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       customKlPrompt: '',
       customMxPrompt: '',
       customGptPrompt: '',
+      customCgPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
@@ -397,7 +454,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       isFxEdited: false,
       isKlEdited: false,
       isMxEdited: false,
-      isGptEdited: false
+      isGptEdited: false,
+      isCgEdited: false
     });
   };
 
@@ -753,7 +811,40 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         />
       </div>
 
-      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || customFxPrompt || customKlPrompt || customMxPrompt || customGptPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited || isGptEdited) && (
+      {/* Cinema Color Grading & De-cast Box */}
+      <div className="prompt-box">
+        <div className="prompt-box-header">
+          <span className="prompt-badge" style={{ backgroundColor: '#059669', color: '#ffffff', fontSize: '0.65rem' }}>Cinema Color Grading (De-cast & True Natural)</span>
+          <button 
+            type="button" 
+            className="btn btn-text btn-sm" 
+            style={{ padding: '2px' }}
+            onClick={() => copyToClipboard(activeCg, 'Cinema Color Grading')}
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+        <textarea
+          className="prompt-text"
+          value={activeCg}
+          onChange={(e) => onChange({ customCgPrompt: e.target.value, isCgEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '72px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="색보정 / 색끼 제거(De-cast) 전용 프롬프트 편집..."
+        />
+      </div>
+
+      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || customFxPrompt || customKlPrompt || customMxPrompt || customGptPrompt || customCgPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited || isGptEdited || isCgEdited) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"

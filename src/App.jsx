@@ -101,6 +101,7 @@ export default function App() {
       cameraMove: 'static',
       tone: 'cinematic',
       colorPalette: 'amber',
+      colorGrade: 'none',
       aspectRatio: '16:9',
       image: null,
       customMjPrompt: '',
@@ -113,6 +114,7 @@ export default function App() {
       customKlPrompt: '',
       customMxPrompt: '',
       customGptPrompt: '',
+      customCgPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
@@ -122,7 +124,8 @@ export default function App() {
       isFxEdited: false,
       isKlEdited: false,
       isMxEdited: false,
-      isGptEdited: false
+      isGptEdited: false,
+      isCgEdited: false
     }
   ]);
   const [geminiApiKey, setGeminiApiKey] = useState('');
@@ -255,6 +258,7 @@ export default function App() {
       cameraMove: 'static',
       tone: 'cinematic',
       colorPalette: 'amber',
+      colorGrade: 'none',
       aspectRatio: '16:9',
       image: null,
       customMjPrompt: '',
@@ -267,6 +271,7 @@ export default function App() {
       customKlPrompt: '',
       customMxPrompt: '',
       customGptPrompt: '',
+      customCgPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
@@ -276,7 +281,8 @@ export default function App() {
       isFxEdited: false,
       isKlEdited: false,
       isMxEdited: false,
-      isGptEdited: false
+      isGptEdited: false,
+      isCgEdited: false
     };
     setFrames([...frames, newFrame]);
     triggerToast('새로운 씬 컷이 추가되었습니다.');
