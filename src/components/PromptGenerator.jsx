@@ -130,6 +130,39 @@ export const COLOR_GRADING_OPTIONS = {
   }
 };
 
+export const ANTI_DEGRADATION_OPTIONS = {
+  none: {
+    ko: '기본 (열화 방지 미지정)',
+    en: '',
+    editPrompt: '',
+    negativeEn: ''
+  },
+  lossless_master: {
+    ko: '무손실 마스터 텍스처 보존 (Lossless Texture & Anti-Degradation)',
+    en: 'uncompressed RAW master quality, zero generation loss, no JPEG or MPEG compression artifacts, no color banding, zero plastic skin smoothing, razor-sharp micro-texture fidelity, crisp edge definition',
+    editPrompt: 'Prevent any generation loss, blurriness, or re-encoding degradation during image processing. Eliminate JPEG blockiness, chroma noise, color banding, and muddiness while strictly avoiding waxy, airbrushed, or plastic skin over-smoothing. Maintain uncompressed 16-bit RAW master clarity, crisp optical edge definition, and natural high-frequency micro-textures across skin pores, individual hair strands, eyelashes, and fabric weaves. Keep the exact pixel-level structural integrity, geometry, and facial identity of the source without AI hallucination or detail melting.',
+    negativeEn: 'low quality, blurry, pixelated, JPEG artifacts, compression artifacts, color banding, posterization, chroma noise, plastic skin, waxy skin, airbrushed, over-smoothed, smudged details, melted textures, haloing, oversharpening artifacts, generation loss, low resolution, out of focus'
+  },
+  deblur_deblock: {
+    ko: '재인코딩 열화·블록 노이즈·열화 블러 복원 (De-artifact & De-blur)',
+    en: 'de-artifacted clean master, removed compression blockiness and mosquito noise, restored optical acutance, crisp high-frequency detail recovery, zero oversharpening halos',
+    editPrompt: 'Clean up all compression artifacts, pixelation, mosquito noise, and motion or generation blur from the source image without introducing artificial oversharpening halos. Restore clean optical acutance, distinct edge boundaries, and true high-frequency surface details in skin, eyes, hair, and clothing. Prevent any painterly or CGI-like smoothing, preserving authentic photographic grain and uncompressed cinema master quality while locking the original face, pose, and composition.',
+    negativeEn: 'blocky artifacts, mosquito noise, ringing artifacts, oversharpening halos, motion blur, out of focus, muddy shadows, pixelated edges, oil painting effect, CGI look, plastic texture'
+  },
+  anti_plastic_skin: {
+    ko: 'AI 플라스틱/수채화 뭉개짐 방지 (Anti-Plastic & Pore Lock)',
+    en: 'authentic unretouched skin pores, preserved fine vellus hair and micro-blemishes, zero AI waxiness or watercolor smudging, organic optical grain',
+    editPrompt: 'Strictly prevent the AI from smoothing, airbrushing, or turning skin and fabric into waxy, plastic, or watercolor-like surfaces. Lock and preserve realistic high-frequency skin micro-textures including natural pores, fine lines, vellus hair, and subtle tonal variations. Avoid any synthetic beauty-filter degradation or detail smudging, ensuring the output retains raw, unretouched photographic realism and exact facial identity.',
+    negativeEn: 'plastic skin, doll-like, airbrushed, beauty filter, waxy, porcelain skin, watercolor effect, smudged pores, blurred eyelashes, synthetic smoothing, CGI rendering'
+  },
+  i2v_frame_lock: {
+    ko: 'I2V 다중 패스/연속 생성 열화 방지 (Multi-pass & I2V Frame Lock)',
+    en: 'locked temporal and spatial fidelity, zero multi-generation color drift, preserved highlight and shadow bit-depth, consistent micro-contrast for I2V first-frame master',
+    editPrompt: 'Prevent cumulative multi-pass generation degradation, contrast crushing, saturation drift, and detail erosion. Maintain full 16-bit tonal gradations in deep shadows and bright highlights without clipping or posterization. Lock sharp spatial micro-details, clean object boundaries, and exact facial geometry so the frame serves as a pristine, zero-artifact master plate for Image-to-Video (I2V) or sequential editing.',
+    negativeEn: 'generation drift, contrast crushing,clipped highlights, crushed blacks, color shift, edge flickering, warped geometry, face drift, temporal artifacts, degraded resolution'
+  }
+};
+
 export default function PromptGenerator({ 
   frame, 
   onChange, 
@@ -152,6 +185,7 @@ export default function PromptGenerator({
     tone = 'cinematic', 
     colorPalette = 'amber', 
     colorGrade = 'none',
+    antiDegrade = 'none',
     aspectRatio = '16:9',
     customMjPrompt = '',
     customNbPrompt = '',
@@ -164,6 +198,7 @@ export default function PromptGenerator({
     customMxPrompt = '',
     customGptPrompt = '',
     customCgPrompt = '',
+    customAdPrompt = '',
     isMjEdited = false,
     isNbEdited = false,
     isCfEdited = false,
@@ -174,7 +209,8 @@ export default function PromptGenerator({
     isKlEdited = false,
     isMxEdited = false,
     isGptEdited = false,
-    isCgEdited = false
+    isCgEdited = false,
+    isAdEdited = false
   } = frame;
 
   const buildStaticCameraDescription = (gear, lensMm, lensType) => {
@@ -232,6 +268,9 @@ export default function PromptGenerator({
     const gradeInfo = COLOR_GRADING_OPTIONS[colorGrade] || COLOR_GRADING_OPTIONS.none;
     const gradeEn = gradeInfo.en || '';
     const gradeSuffix = gradeEn ? `, ${gradeEn}` : '';
+    const antiDegradeInfo = ANTI_DEGRADATION_OPTIONS[antiDegrade] || ANTI_DEGRADATION_OPTIONS.none;
+    const antiDegradeEn = antiDegradeInfo.en || '';
+    const antiDegradeSuffix = antiDegradeEn ? `, ${antiDegradeEn}` : '';
     const storyText = storyEn || story.trim() || 'A simple scene';
 
     // 1. Static camera move: Filter out video motions for static engines to prevent motion blur/composition issues
@@ -247,43 +286,50 @@ export default function PromptGenerator({
     const gearSentence = cameraSentence ? ` ${cameraSentence}.` : '';
 
     // Midjourney
-    const mj = `${storyText}, ${styleEn}, ${shotEn}, ${staticCameraEn ? staticCameraEn + ', ' : ''}${toneEn}, ${colorEn}${gradeSuffix}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
+    const mj = `${storyText}, ${styleEn}, ${shotEn}, ${staticCameraEn ? staticCameraEn + ', ' : ''}${toneEn}, ${colorEn}${gradeSuffix}${antiDegradeSuffix}${gearSuffix} --ar ${aspectRatio} --v 6.0`;
 
     // NanoBanana
-    const nb = `A highly detailed, raw realistic photograph. The subject is ${storyText}. The composition is a ${shotEn}${staticCameraEn ? ' with a ' + staticCameraEn : ''}.${gearSentence} The general mood is ${toneEn}, rendered in a ${colorEn}${gradeEn ? '. Color grading: ' + gradeEn : ''}.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is ${storyText}. The composition is a ${shotEn}${staticCameraEn ? ' with a ' + staticCameraEn : ''}.${gearSentence} The general mood is ${toneEn}, rendered in a ${colorEn}${gradeEn ? '. Color grading: ' + gradeEn : ''}${antiDegradeEn ? '. Quality & anti-degradation: ' + antiDegradeEn : ''}.`;
 
     // ComfyUI Z-Image Turbo: Subject -> State -> Composition -> Lighting -> Atmosphere
     const compPart = [shotEn, staticCameraEn].filter(Boolean).join(', ');
-    const cf = `${storyText}, ${compPart || 'clear framing'}, illuminated by ${toneEn} and ${colorEn}${gradeSuffix}, rendered in ${styleEn} style, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
+    const cf = `${storyText}, ${compPart || 'clear framing'}, illuminated by ${toneEn} and ${colorEn}${gradeSuffix}${antiDegradeSuffix}, rendered in ${styleEn} style, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
 
     // ComfyUI Grok
-    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}${staticCameraEn ? ', ' + staticCameraEn : ''}. Atmosphere: ${toneEn}. Colors: ${colorEn}${gradeSuffix}. Camera setup: ${cameraSentence}. Realism, high resolution.`;
+    const gk = `A raw, detailed photo showing: ${storyText}. Style: ${styleEn}. Composition: ${shotEn}${staticCameraEn ? ', ' + staticCameraEn : ''}. Atmosphere: ${toneEn}. Colors: ${colorEn}${gradeSuffix}${antiDegradeSuffix}. Camera setup: ${cameraSentence}. Realism, high resolution.`;
 
     // Seedance
-    const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera: ${staticCameraEn || 'steady'}, tone: ${toneEn}, color grade: ${colorEn}${gradeSuffix}${gearSuffix}, high quality cinematic render, 8k resolution`;
+    const sd = `commercial film look, ${storyText}, ${styleEn}, ${shotEn}, camera: ${staticCameraEn || 'steady'}, tone: ${toneEn}, color grade: ${colorEn}${gradeSuffix}${antiDegradeSuffix}${gearSuffix}, high quality cinematic render, 8k resolution`;
 
     // LTX Video (Dynamic video motion allowed)
     const videoCameraDesc = `filmed using professional cinema equipment with ${videoCameraMoveEn || 'steady tracking'}`;
-    const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${videoCameraMoveEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}${gradeSuffix}. ${videoCameraDesc}. Smooth motion, highly detailed, photorealistic render.`;
+    const lx = `A realistic commercial video clip: ${storyText}. Style: ${styleEn}. Camera movement: ${videoCameraMoveEn}, ${shotEn}. Tone: ${toneEn}. Colors: ${colorEn}${gradeSuffix}${antiDegradeSuffix}. ${videoCameraDesc}. Smooth motion, highly detailed, photorealistic render.`;
 
     // Flux Image Edit ComfyUI
-    const fx = gradeInfo.editPrompt
-      ? `${gradeInfo.editPrompt} Scene context: ${storyText}, ${shotEn}, ${cameraSentence}.`
+    const combinedEditInstructions = [gradeInfo.editPrompt, antiDegradeInfo.editPrompt].filter(Boolean).join(' ');
+    const fx = combinedEditInstructions
+      ? `${combinedEditInstructions} Scene context: ${storyText}, ${shotEn}, ${cameraSentence}.`
       : `flux image edit, style of ${styleEn}, modify scene focus to ${storyText}, keeping composition framing as ${shotEn}, atmosphere ${toneEn}, colors ${colorEn}, ${cameraSentence}, high fidelity image editing, realistic raw photography, masterpiece`;
 
     // Kling Video (Cinematic high definition motion)
-    const kl = `A high-quality cinematic video clip showing ${storyText}, shot in ${shotEn} perspective with ${videoCameraMoveEn || 'fluid cinematic movement'}. Tone: ${toneEn}. Color palette: ${colorEn}${gradeSuffix}. ${cameraSentence}, 4k resolution, smooth rendering, lifelike textures, realistic physics.`;
+    const kl = `A high-quality cinematic video clip showing ${storyText}, shot in ${shotEn} perspective with ${videoCameraMoveEn || 'fluid cinematic movement'}. Tone: ${toneEn}. Color palette: ${colorEn}${gradeSuffix}${antiDegradeSuffix}. ${cameraSentence}, 4k resolution, smooth rendering, lifelike textures, realistic physics.`;
 
     // MiniMax Hailuo H3 (Practical action movie cinematic rendering)
-    const mx = `Realistic live-action cinematic movie shot, ${storyText}. Composition: ${shotEn}. Camera setup: ${cameraSentence}. Camera movement: ${videoCameraMoveEn || 'steady action motion'}. style: ${styleEn}. Lighting: ${toneEn}. Colors: ${colorEn}${gradeSuffix}. Film grain, anamorphic lens, shallow depth of field, fluid organic motion, high quality render, 4k.`;
+    const mx = `Realistic live-action cinematic movie shot, ${storyText}. Composition: ${shotEn}. Camera setup: ${cameraSentence}. Camera movement: ${videoCameraMoveEn || 'steady action motion'}. style: ${styleEn}. Lighting: ${toneEn}. Colors: ${colorEn}${gradeSuffix}${antiDegradeSuffix}. Film grain, anamorphic lens, shallow depth of field, fluid organic motion, high quality render, 4k.`;
 
     // ChatGPT / DALL-E 3 / GPT-4o Image
-    const gp = `A photorealistic image of ${storyText}. Style: ${styleEn}. Framing and composition: ${shotEn}. Atmosphere and lighting: ${toneEn}, ${colorEn}${gradeSuffix}. ${cameraSentence}. Highly detailed authentic textures, natural lighting, high dynamic range, masterpiece, sharp focus, 8k resolution.`;
+    const gp = `A photorealistic image of ${storyText}. Style: ${styleEn}. Framing and composition: ${shotEn}. Atmosphere and lighting: ${toneEn}, ${colorEn}${gradeSuffix}${antiDegradeSuffix}. ${cameraSentence}. Highly detailed authentic textures, natural lighting, high dynamic range, masterpiece, sharp focus, 8k resolution.`;
 
-    // Cinema Color Grading & De-cast Restoration Prompt (Standalone)
-    const cg = gradeInfo.editPrompt || COLOR_GRADING_OPTIONS.decast_natural.editPrompt;
+    // Cinema Color Grading & De-cast Restoration Prompt (Standalone, merges anti-degradation if selected)
+    const cgBase = gradeInfo.editPrompt || COLOR_GRADING_OPTIONS.decast_natural.editPrompt;
+    const cg = antiDegradeInfo.editPrompt ? `${cgBase} ${antiDegradeInfo.editPrompt}` : cgBase;
 
-    return { mj, nb, cf, gk, sd, lx, fx, kl, mx, gp, cg };
+    // Anti-Degradation & Master Quality Preservation Prompt (Standalone + Negative Block)
+    const adBase = antiDegradeInfo.editPrompt || ANTI_DEGRADATION_OPTIONS.lossless_master.editPrompt;
+    const adNeg = antiDegradeInfo.negativeEn || ANTI_DEGRADATION_OPTIONS.lossless_master.negativeEn;
+    const ad = `${adBase}\n[Anti-Degradation Negative]: ${adNeg}`;
+
+    return { mj, nb, cf, gk, sd, lx, fx, kl, mx, gp, cg, ad };
   };
 
   const localPrompts = compileLocalPrompts();
@@ -298,6 +344,7 @@ export default function PromptGenerator({
   const activeMx = customMxPrompt !== '' ? customMxPrompt : localPrompts.mx;
   const activeGpt = customGptPrompt !== '' ? customGptPrompt : localPrompts.gp;
   const activeCg = customCgPrompt !== '' ? customCgPrompt : localPrompts.cg;
+  const activeAd = customAdPrompt !== '' ? customAdPrompt : localPrompts.ad;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -327,14 +374,16 @@ Lens Type/Model: "${LENS_TYPES[lensType]?.ko} (${LENS_TYPES[lensType]?.en})"
 Tone: "${TONES[tone]?.ko} (${TONES[tone]?.en})"
 Colors: "${COLORS[colorPalette]?.ko} (${COLORS[colorPalette]?.en})"
 Color Grading / De-cast Option: "${COLOR_GRADING_OPTIONS[colorGrade]?.ko || '기본'} (${COLOR_GRADING_OPTIONS[colorGrade]?.en || 'standard natural color grading'})"
+Anti-Degradation / Quality Lock Option: "${ANTI_DEGRADATION_OPTIONS[antiDegrade]?.ko || '기본'} (${ANTI_DEGRADATION_OPTIONS[antiDegrade]?.en || 'lossless uncompressed RAW master texture'})"
 
 CRITICAL PROMPTING RULES:
 1. Prevent Camera/Lens Objects in Images: To stop the AI from drawing physical cameras or lenses in the scene, DO NOT mention nouns like "camera body", "camera model", "lens module", "Fujifilm GFX 100S", or "Canon L-series USM lens". Instead, describe the setup using brandless adjectival/prepositional filming style and optical properties (e.g., "photographed with medium-format aesthetics, utilizing shallow depth-of-field and soft out-of-focus background bokeh").
 2. No Video Motion in Static Prompts: For all static engines (Midjourney, NanoBanana, ComfyUI, Grok, Seedance, GPT), DO NOT include video movement terms (such as "slow rotation", "orbital motion", "zooming in", "panning", "tilting", "tracking"). Replace them with static terms (e.g. "steady camera perspective", "still photograph") or omit them entirely to prevent motion blur and duplicate objects. Only include dynamic motions in the LTX Video, Kling, and MiniMax prompts.
 3. ComfyUI Z-Image Turbo Prompt Structure: The "comfyui" prompt MUST follow this exact natural language sentence structure: [Subject] -> [State] -> [Composition] -> [Lighting] -> [Atmosphere]. Do not write long tag lists. Example: "[Subject/Story details], [State/Action], [Composition/Framing], illuminated by [Lighting], rendered in [Style] style, [Camera/Lens optical description], highly detailed, masterpiece, sharp focus, 8k".
 4. Color Grading / De-cast Prompt ("colorgrade"): Must follow a strict 5-layer image-to-image color restoration structure: (1) Neutralize heavy color casts (green, amber, teal tints in midtones) and restore true natural light while preserving original lighting direction, (2) Recover accurate Korean skin tones, deep neutral blacks with visible shadow detail, and clean unclipped whites, (3) Expand dynamic range, local contrast, and fine texture in skin, fabric, and hair to a modern high-end digital cinema look, (4) Strictly preserve every person's facial features, face shape, and identity without redrawing, (5) Keep the exact same frame, composition, subject, and expression without adding or removing objects — output the photograph itself, not an AI illustration.
+5. Anti-Degradation / Lossless Preservation Prompt ("antidegrade"): Must instruct the AI to prevent multi-pass generation loss, JPEG/MPEG compression blockiness, color banding, chroma noise, and waxy/plastic skin over-smoothing, while preserving 16-bit RAW master acutance, high-frequency micro-textures (pores, hair strands, fabric weave), and exact pixel-level geometry, followed by a "[Anti-Degradation Negative]: ..." line.
 
-Provide a JSON object containing exactly twelve fields:
+Provide a JSON object containing exactly thirteen fields:
 1. "storyEn": The simple, direct translation of the Korean story into English.
 2. "midjourney": A prompt optimized for Midjourney (incorporating the brandless camera/lens rendering description, static framing only, ending with --ar ${aspectRatio} --v 6.0).
 3. "nanobanana": A prompt optimized for NanoBanana (a cohesive, detailed, descriptive English paragraph describing layout, brandless optical properties, static composition, and lighting).
@@ -347,6 +396,7 @@ Provide a JSON object containing exactly twelve fields:
 10. "minimax": A prompt optimized for MiniMax Hailuo H3 (cinematic movie trailer rendering, emphasizing rapid action progression, practical camera textures, restrained premium colors, and seamless physical motions).
 11. "gpt": A prompt optimized for ChatGPT / GPT-4o / DALL-E 3 (a cohesive natural descriptive paragraph detailing subject, scene layout, lighting, style, and realistic photography aesthetic).
 12. "colorgrade": A prompt optimized for Cinema Color Grading & De-cast Restoration (following Rule 4).
+13. "antidegrade": A prompt optimized for Anti-Degradation & Lossless Master Quality Preservation (following Rule 5).
 
 Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
 
@@ -388,6 +438,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
           if (!isMxEdited) updateData.customMxPrompt = parsed.minimax;
           if (!isGptEdited) updateData.customGptPrompt = parsed.gpt;
           if (!isCgEdited && parsed.colorgrade) updateData.customCgPrompt = parsed.colorgrade;
+          if (!isAdEdited && parsed.antidegrade) updateData.customAdPrompt = parsed.antidegrade;
 
           onChange(updateData);
           showToast('AI 번역 및 고도화 완료');
@@ -417,7 +468,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
             isKlEdited: false,
             isMxEdited: false,
             isGptEdited: false,
-            isCgEdited: false
+            isCgEdited: false,
+            isAdEdited: false
           });
           showToast('영문 번역 완료 (MyMemory)');
         } else {
@@ -445,6 +497,7 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       customMxPrompt: '',
       customGptPrompt: '',
       customCgPrompt: '',
+      customAdPrompt: '',
       isMjEdited: false,
       isNbEdited: false,
       isCfEdited: false,
@@ -455,7 +508,8 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
       isKlEdited: false,
       isMxEdited: false,
       isGptEdited: false,
-      isCgEdited: false
+      isCgEdited: false,
+      isAdEdited: false
     });
   };
 
@@ -844,7 +898,40 @@ Return only the raw JSON. Do not write markdown tags like \`\`\`json.`;
         />
       </div>
 
-      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || customFxPrompt || customKlPrompt || customMxPrompt || customGptPrompt || customCgPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited || isGptEdited || isCgEdited) && (
+      {/* Anti-Degradation & Master Quality Box */}
+      <div className="prompt-box">
+        <div className="prompt-box-header">
+          <span className="prompt-badge" style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '0.65rem' }}>Anti-Degradation (열화 방지 & 무손실 마스터 락)</span>
+          <button 
+            type="button" 
+            className="btn btn-text btn-sm" 
+            style={{ padding: '2px' }}
+            onClick={() => copyToClipboard(activeAd, 'Anti-Degradation')}
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+        </div>
+        <textarea
+          className="prompt-text"
+          value={activeAd}
+          onChange={(e) => onChange({ customAdPrompt: e.target.value, isAdEdited: true })}
+          style={{
+            width: '100%',
+            minHeight: '76px',
+            border: 'none',
+            background: 'transparent',
+            fontSize: '0.8rem',
+            fontFamily: 'monospace',
+            resize: 'vertical',
+            outline: 'none',
+            padding: 0
+          }}
+          placeholder="열화 방지(Anti-Degradation) 및 무손실 디테일 락 프롬프트 편집..."
+        />
+      </div>
+
+      {(customMjPrompt || customNbPrompt || customCfPrompt || customGkPrompt || customSdPrompt || customLxPrompt || customFxPrompt || customKlPrompt || customMxPrompt || customGptPrompt || customCgPrompt || customAdPrompt || isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited || isGptEdited || isCgEdited || isAdEdited) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"

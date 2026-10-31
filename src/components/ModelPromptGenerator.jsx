@@ -213,6 +213,39 @@ const MODEL_COLOR_GRADES = [
   }
 ];
 
+const MODEL_ANTI_DEGRADATION = [
+  {
+    ko: '무손실 마스터 텍스처 보존 (Lossless Texture & Anti-Degradation)',
+    en: 'lossless uncompressed 16-bit RAW master quality, zero generation loss, zero compression artifacts, razor-sharp optical micro-contrast, preserved high-frequency skin pores and fabric weave, clean un-banded gradients',
+    editPrompt: 'Strictly prevent any image quality degradation, generation loss, or resolution softening during processing. Maintain uncompressed 16-bit RAW master clarity with razor-sharp optical acutance and zero JPEG/MPEG block artifacts, color banding, or chroma noise. Lock and preserve all high-frequency micro-textures — including natural skin pores, vellus hair, eyelashes, individual hair strands, and fine fabric weave — without any waxy smoothing, plastic denoising, or muddy blurring. Preserve exact pixel-level edge fidelity, micro-contrast, highlight/shadow tonal gradation, and exact facial geometry from the original source.',
+    negativeEn: 'low quality, blurry, out of focus, pixelated, JPEG artifacts, compression blocks, color banding, posterization, chroma noise, muddy shadows, blown highlights, plastic skin, waxy skin, airbrushed, over-smoothed, smudged details, melted textures, haloing, oversharpening artifacts, generation loss'
+  },
+  {
+    ko: '압축 노이즈/블러/열화 복원 (De-blur & Artifact Removal)',
+    en: 'de-artifacted pristine master, eliminated compression blockiness and motion smear, restored crisp edge acutance, clean shadow gradation without banding, ultra-high definition texture recovery',
+    editPrompt: 'Eliminate all compression artifacts, mosquito noise, macro-blocking, and soft blurriness from the frame while strictly forbidding artificial AI hallucination or face alteration. Reconstruct crisp optical edge definition, clean micro-contrast, and smooth 16-bit tonal transitions in shadows and highlights without color banding. Restore natural physical surface textures in skin, hair, eyes, and clothing to pristine cinema master quality while keeping the exact original composition, lighting, and subject identity.',
+    negativeEn: 'compression artifacts, macroblocking, mosquito noise, ringing artifacts, motion smear, blurry edges, muddy midtones, color banding, blotchy skin, AI hallucinated details, altered face'
+  },
+  {
+    ko: 'AI 플라스틱/수채화 뭉개짐 방지 (Anti-Plastic & Raw Micro-Detail)',
+    en: 'authentic unretouched organic micro-texture, zero AI plastic smoothing, zero watercolor smudging, tactile skin pores and fine vellus hair, natural optical grain structure',
+    editPrompt: 'Prevent any AI-induced plastic skin, waxy over-smoothing, or watercolor-like texture smudging. Enforce authentic, unretouched organic micro-detail across all surfaces: preserve real skin pores, subtle skin imperfections, individual eyebrow and eyelash hairs, and crisp fabric threads with natural optical sensor rendition. Do not apply beauty filters, airbrushing, or synthetic sharpening halos — keep the image looking like a direct optical capture from a cinema camera.',
+    negativeEn: 'plastic skin, waxy skin, porcelain doll, airbrushed, beauty filter, smudged watercolor texture, over-denoised, synthetic skin, CGI look, 3D render, uncanny valley, blurred pores'
+  },
+  {
+    ko: 'I2V/다중 편집 세대 손실 잠금 (Multi-Pass Generation Lock)',
+    en: 'strict first-frame fidelity lock, zero temporal or multi-pass quality drift, locked luminance and contrast curve, invariant facial identity and fine texture retention',
+    editPrompt: 'Lock the exact visual fidelity of the source master to prevent multi-pass generation loss, contrast crushing, or saturation drift. Maintain identical luminance levels, black/white points, color accuracy, and sharp high-frequency detail from the reference frame. Do not allow progressive blurring, detail erosion, or facial identity drift across edits or frames.',
+    negativeEn: 'generation loss, quality drift, contrast crushing, oversaturation drift, progressive blurring, detail erosion, identity drift, morphing features, flickering texture, frame degradation'
+  },
+  {
+    ko: '기본 (별도 열화 방지 미지정)',
+    en: '',
+    editPrompt: '',
+    negativeEn: ''
+  }
+];
+
 export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [age, setAge] = useState('20대');
   const [gender, setGender] = useState('여성');
@@ -233,13 +266,14 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [lensMm, setLensMm] = useState('기본 (화각 미지정)');
   const [lensType, setLensType] = useState('기본 (렌즈종류 미지정)');
   const [colorGrade, setColorGrade] = useState('시네마 색끼 제거 & 트루 내추럴 (De-cast & True Natural)');
+  const [antiDegrade, setAntiDegrade] = useState('무손실 마스터 텍스처 보존 (Lossless Texture & Anti-Degradation)');
   
   // Custom description in Korean
   const [customModelDesc, setCustomModelDesc] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Main assembled prompts
-  const [prompts, setPrompts] = useState({ mj: '', nb: '', cf: '', gk: '', sd: '', lx: '', fx: '', kl: '', mx: '', gp: '', cg: '' });
+  const [prompts, setPrompts] = useState({ mj: '', nb: '', cf: '', gk: '', sd: '', lx: '', fx: '', kl: '', mx: '', gp: '', cg: '', ad: '' });
 
   // Custom manually edited prompt fields
   const [customMjPrompt, setCustomMjPrompt] = useState('');
@@ -253,6 +287,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [customMxPrompt, setCustomMxPrompt] = useState('');
   const [customGptPrompt, setCustomGptPrompt] = useState('');
   const [customCgPrompt, setCustomCgPrompt] = useState('');
+  const [customAdPrompt, setCustomAdPrompt] = useState('');
 
   // Dirty edit tracking
   const [isMjEdited, setIsMjEdited] = useState(false);
@@ -266,6 +301,7 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
   const [isMxEdited, setIsMxEdited] = useState(false);
   const [isGptEdited, setIsGptEdited] = useState(false);
   const [isCgEdited, setIsCgEdited] = useState(false);
+  const [isAdEdited, setIsAdEdited] = useState(false);
 
   const buildStaticCameraDescription = (gear, lensMm, lensType) => {
     const gearEffects = {
@@ -342,6 +378,9 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const gradeObj = MODEL_COLOR_GRADES.find(g => g.ko === colorGrade) || MODEL_COLOR_GRADES[0];
     const gradeEn = gradeObj?.en || '';
     const gradeSuffix = gradeEn ? `, ${gradeEn}` : '';
+    const adObj = MODEL_ANTI_DEGRADATION.find(a => a.ko === antiDegrade) || MODEL_ANTI_DEGRADATION[0];
+    const adEn = adObj?.en || '';
+    const adSuffix = adEn ? `, ${adEn}` : '';
 
     // Map selected options to keys
     const cameraMap = {
@@ -394,39 +433,44 @@ export default function ModelPromptGenerator({ geminiApiKey, showToast }) {
     const cameraSuffix = cameraSentence ? `, ${cameraSentence}` : '';
 
     // Midjourney
-    const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${gradeSuffix}${cameraSuffix} --ar 16:9 --v 6.0 --style raw`;
+    const mj = `A raw photo of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}${compEn}, ${skinEn}, ${detailEn}, ${lightEn}, ${bgEn}${gradeSuffix}${adSuffix}${cameraSuffix} --ar 16:9 --v 6.0 --style raw`;
 
     // NanoBanana
-    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. ${cameraSentence || 'Shot on a professional camera'}. Captured under ${lightEn} with a ${bgEn}.${gradeEn ? ' Color grading: ' + gradeEn + '.' : ''} Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
+    const nb = `A highly detailed, raw realistic photograph. The subject is a ${subjectEn}${poseSentence} They feature a ${exprEn}${descPartNb}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. The shot is a ${compEn} highlighting ${skinEn} with ${detailEn}. ${cameraSentence || 'Shot on a professional camera'}. Captured under ${lightEn} with a ${bgEn}.${gradeEn ? ' Color grading: ' + gradeEn + '.' : ''}${adEn ? ' Quality lock: ' + adEn + '.' : ''} Emphasizes authentic skin texture, avoiding any artificial smooth or flawless airbrushed appearance.`;
 
     // ComfyUI Z-Image Turbo: Subject -> State -> Composition -> Lighting -> Atmosphere
-    const cf = `A raw portrait photograph of a ${subjectEn}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}, ${exprEn}${descPart}, in a ${compEn} framing${posePart ? ', posing' + posePart : ''}, illuminated by ${lightEn}, showing natural realistic skin texture highlighting ${skinEn} with ${detailEn}, ${bgEn ? 'against a ' + bgEn : ''}${gradeSuffix}, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
+    const cf = `A raw portrait photograph of a ${subjectEn}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}, ${exprEn}${descPart}, in a ${compEn} framing${posePart ? ', posing' + posePart : ''}, illuminated by ${lightEn}, showing natural realistic skin texture highlighting ${skinEn} with ${detailEn}, ${bgEn ? 'against a ' + bgEn : ''}${gradeSuffix}${adSuffix}, ${cameraSentence}, highly detailed, masterpiece, sharp focus, 8k`;
 
     // ComfyUI Grok
-    const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}.${gradeEn ? ' Color grading: ' + gradeEn + '.' : ''} Camera setup: ${cameraSentence || 'professional studio quality'}.`;
+    const gk = `A raw portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}.${gradeEn ? ' Color grading: ' + gradeEn + '.' : ''}${adEn ? ' Quality lock: ' + adEn + '.' : ''} Camera setup: ${cameraSentence || 'professional studio quality'}.`;
 
     // Seedance
-    const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSentence || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}${gradeSuffix}, photorealistic skin textures, high-end commercial grading`;
+    const sd = `raw studio photo, ${subjectEn}${posePart}, ${exprEn}${descPart}, ${hairEn}, ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}, ${compEn}, ${skinEn}, ${detailEn}, camera setup: ${cameraSentence || 'high-end camera'}, lighting: ${lightEn}, background: ${bgEn}${gradeSuffix}${adSuffix}, photorealistic skin textures, high-end commercial grading`;
 
     // LTX Video
-    const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${gradeSuffix}${cameraSuffix}. Photorealistic, natural motion, high-end commercial grade.`;
+    const lx = `A realistic commercial video clip of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. Camera movement: ${compEn}, ${lightEn}. Background: ${bgEn}${gradeSuffix}${adSuffix}${cameraSuffix}. Photorealistic, natural motion, high-end commercial grade.`;
 
     // Flux Image Edit
-    const fx = `flux image edit, edit instructions: modify model attributes to a ${subjectEn}${posePart}, with ${hairEn} and ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}, face expression: ${exprEn}${descPart}, captured in a ${compEn} framing, focusing on detailed ${skinEn} texture with ${detailEn}, under ${lightEn} in front of ${bgEn}${gradeSuffix}, ${cameraSentence}`;
+    const fx = `flux image edit, edit instructions: modify model attributes to a ${subjectEn}${posePart}, with ${hairEn} and ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}, face expression: ${exprEn}${descPart}, captured in a ${compEn} framing, focusing on detailed ${skinEn} texture with ${detailEn}, under ${lightEn} in front of ${bgEn}${gradeSuffix}${adSuffix}, ${cameraSentence}`;
 
     // Kling Video
-    const kl = `A high-quality cinematic video clip of a ${subjectEn}${posePart}. The subject is captured with a ${compEn} framing. Details: ${hairEn}, ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}${exprEn}${descPart}. Lighting: ${lightEn}. Background: ${bgEn}${gradeSuffix}. Camera setup: ${cameraSentence}. Photorealistic skin texture, extremely fluid natural human movement, masterpiece, 4k.`;
+    const kl = `A high-quality cinematic video clip of a ${subjectEn}${posePart}. The subject is captured with a ${compEn} framing. Details: ${hairEn}, ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}${exprEn}${descPart}. Lighting: ${lightEn}. Background: ${bgEn}${gradeSuffix}${adSuffix}. Camera setup: ${cameraSentence}. Photorealistic skin texture, extremely fluid natural human movement, masterpiece, 4k.`;
 
     // MiniMax Video
-    const mx = `Realistic cinematic live-action video clip of a ${subjectEn}${posePart}, captured with ${compEn} framing. Style: modern cinematic look. Details: ${hairEn}, ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}${exprEn}${descPart}. Under ${lightEn} with a backdrop of ${bgEn}${gradeSuffix}. Camera setup: ${cameraSentence}. Fluid organic motion, ultra-detailed skin textures, film grain, premium tone, 4k resolution.`;
+    const mx = `Realistic cinematic live-action video clip of a ${subjectEn}${posePart}, captured with ${compEn} framing. Style: modern cinematic look. Details: ${hairEn}, ${makeupEn}, ${clothesEn ? clothesEn + ', ' : ''}${accessoryEn ? accessoryEn + ', ' : ''}${exprEn}${descPart}. Under ${lightEn} with a backdrop of ${bgEn}${gradeSuffix}${adSuffix}. Camera setup: ${cameraSentence}. Fluid organic motion, ultra-detailed skin textures, film grain, premium tone, 4k resolution.`;
 
     // ChatGPT / DALL-E 3
-    const gp = `A photorealistic portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}${gradeSuffix}. Camera setup: ${cameraSentence}. Highly detailed natural skin texture, authentic lighting, masterpiece quality, 8k resolution.`;
+    const gp = `A photorealistic portrait photograph of a ${subjectEn}${posePart}, ${exprEn}${descPart}, with ${hairEn} and ${makeupEn}${clothesEn ? ', ' + clothesEn : ''}${accessoryEn ? ', ' + accessoryEn : ''}. Composition: ${compEn}. Lighting: ${lightEn}. Background: ${bgEn}${gradeSuffix}${adSuffix}. Camera setup: ${cameraSentence}. Highly detailed natural skin texture, authentic lighting, masterpiece quality, 8k resolution.`;
 
     // Cinema Color Grading / De-cast Restoration
-    const cg = gradeObj?.editPrompt || MODEL_COLOR_GRADES[0].editPrompt;
+    const baseCg = gradeObj?.editPrompt || MODEL_COLOR_GRADES[0].editPrompt;
+    const cg = adObj?.editPrompt ? `${baseCg} ${adObj.editPrompt}` : baseCg;
 
-    return { mj, nb, cf, gk, sd, lx, fx, kl, mx, gp, cg };
+    // Anti-Degradation / Lossless Master Quality Lock
+    const activeAdObj = adObj?.editPrompt ? adObj : MODEL_ANTI_DEGRADATION[0];
+    const ad = `${activeAdObj.editPrompt}\n[Anti-Degradation Negative]: ${activeAdObj.negativeEn}`;
+
+    return { mj, nb, cf, gk, sd, lx, fx, kl, mx, gp, cg, ad };
   };
 
   const handleAssembleAndTranslate = async () => {
@@ -496,6 +540,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       if (!isMxEdited) setCustomMxPrompt(compiled.mx);
       if (!isGptEdited) setCustomGptPrompt(compiled.gp);
       if (!isCgEdited) setCustomCgPrompt(compiled.cg);
+      if (!isAdEdited) setCustomAdPrompt(compiled.ad);
 
       // Update baseline prompts
       setPrompts(compiled);
@@ -523,6 +568,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
     setCustomMxPrompt(initial.mx);
     setCustomGptPrompt(initial.gp);
     setCustomCgPrompt(initial.cg);
+    setCustomAdPrompt(initial.ad);
   }, []);
 
   const handleResetCustomPrompts = () => {
@@ -545,6 +591,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
     setLensMm('기본 (화각 미지정)');
     setLensType('기본 (렌즈종류 미지정)');
     setColorGrade('시네마 색끼 제거 & 트루 내추럴 (De-cast & True Natural)');
+    setAntiDegrade('무손실 마스터 텍스처 보존 (Lossless Texture & Anti-Degradation)');
     setCustomModelDesc('');
     
     // Defer compile so state updates process
@@ -562,6 +609,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       setCustomMxPrompt(initial.mx);
       setCustomGptPrompt(initial.gp);
       setCustomCgPrompt(initial.cg);
+      setCustomAdPrompt(initial.ad);
       setIsMjEdited(false);
       setIsNbEdited(false);
       setIsCfEdited(false);
@@ -573,6 +621,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
       setIsMxEdited(false);
       setIsGptEdited(false);
       setIsCgEdited(false);
+      setIsAdEdited(false);
       showToast('기본 프롬프트로 초기화되었습니다.');
     }, 50);
   };
@@ -593,6 +642,7 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
   const activeMx = isMxEdited ? customMxPrompt : (customMxPrompt || prompts.mx);
   const activeGpt = isGptEdited ? customGptPrompt : (customGptPrompt || prompts.gp);
   const activeCg = isCgEdited ? customCgPrompt : (customCgPrompt || prompts.cg);
+  const activeAd = isAdEdited ? customAdPrompt : (customAdPrompt || prompts.ad);
 
   return (
     <div className="model-sidebar" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
@@ -751,6 +801,14 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           <label style={{ fontSize: '0.65rem', color: '#059669', fontWeight: 700 }}>시네마 색보정 / 색끼 제거 (De-cast)</label>
           <select value={colorGrade} onChange={(e) => setColorGrade(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%', borderColor: '#059669' }}>
             {MODEL_COLOR_GRADES.map(g => <option key={g.ko} value={g.ko}>{g.ko}</option>)}
+          </select>
+        </div>
+
+        {/* Row 11.5: Anti-Degradation / Lossless Quality Lock (1 column - Full width) */}
+        <div className="form-group">
+          <label style={{ fontSize: '0.65rem', color: '#dc2626', fontWeight: 700 }}>화질 열화 방지 / 무손실 마스터 락 (Anti-Degradation)</label>
+          <select value={antiDegrade} onChange={(e) => setAntiDegrade(e.target.value)} style={{ padding: '0.375rem 0.5rem', fontSize: '0.775rem', width: '100%', borderColor: '#dc2626' }}>
+            {MODEL_ANTI_DEGRADATION.map(a => <option key={a.ko} value={a.ko}>{a.ko}</option>)}
           </select>
         </div>
 
@@ -1008,7 +1066,27 @@ Return ONLY the English translated text, no quotes, no explanations, no markdown
           />
         </div>
 
-        {(isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited || isGptEdited || isCgEdited || customModelDesc) && (
+        {/* Anti-Degradation / Lossless Quality Lock */}
+        <div className="prompt-box" style={{ padding: '0.5rem' }}>
+          <div className="prompt-box-header" style={{ marginBottom: '2px' }}>
+            <span className="prompt-badge" style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '0.55rem' }}>Anti-Degradation (열화 방지 & 무손실 락)</span>
+            <button type="button" className="btn btn-text btn-sm" style={{ padding: '2px' }} onClick={() => copyToClipboard(activeAd, 'Anti-Degradation')}>
+              <Copy size={10} />
+            </button>
+          </div>
+          <textarea
+            className="prompt-text"
+            value={activeAd}
+            onChange={(e) => {
+              setCustomAdPrompt(e.target.value);
+              setIsAdEdited(true);
+            }}
+            style={{ width: '100%', minHeight: '64px', border: 'none', background: 'transparent', fontSize: '0.725rem', fontFamily: 'monospace', resize: 'vertical', outline: 'none', padding: 0 }}
+            placeholder="화질 열화 방지 / 무손실 마스터 락 전용 프롬프트 편집..."
+          />
+        </div>
+
+        {(isMjEdited || isNbEdited || isCfEdited || isGkEdited || isSdEdited || isLxEdited || isFxEdited || isKlEdited || isMxEdited || isGptEdited || isCgEdited || isAdEdited || customModelDesc) && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.125rem' }}>
             <button
               type="button"

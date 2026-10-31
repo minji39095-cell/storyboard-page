@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Trash2, PenTool, Upload, Image as ImageIcon, X, Sparkles, AlertCircle } from 'lucide-react';
 import DrawingCanvas from './DrawingCanvas';
-import PromptGenerator, { STYLES, SHOTS, CAMERAS, TONES, COLORS, CAMERA_GEAR, LENS_MM, LENS_TYPES, COLOR_GRADING_OPTIONS } from './PromptGenerator';
+import PromptGenerator, { STYLES, SHOTS, CAMERAS, TONES, COLORS, CAMERA_GEAR, LENS_MM, LENS_TYPES, COLOR_GRADING_OPTIONS, ANTI_DEGRADATION_OPTIONS } from './PromptGenerator';
 
 const AD_PRESETS = {
   cosmetics: {
@@ -186,6 +186,7 @@ export default function StoryboardFrame({
     if (!frame.isMxEdited && !('customMxPrompt' in updatedFields)) clearedPrompts.customMxPrompt = '';
     if (!frame.isGptEdited && !('customGptPrompt' in updatedFields)) clearedPrompts.customGptPrompt = '';
     if (!frame.isCgEdited && !('customCgPrompt' in updatedFields)) clearedPrompts.customCgPrompt = '';
+    if (!frame.isAdEdited && !('customAdPrompt' in updatedFields)) clearedPrompts.customAdPrompt = '';
 
     onUpdate(frame.id, { ...updatedFields, ...clearedPrompts });
   };
@@ -675,6 +676,20 @@ Provide ONLY the final script text. Do not include any explanations, code block 
             style={{ width: '100%', borderColor: frame.colorGrade && frame.colorGrade !== 'none' ? '#059669' : undefined }}
           >
             {Object.entries(COLOR_GRADING_OPTIONS).map(([key, val]) => (
+              <option key={key} value={key}>{val.ko}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Anti-Degradation / Quality Lock Option (Full Width) */}
+        <div className="form-group">
+          <label style={{ color: '#dc2626', fontWeight: 700 }}>화질 열화 방지 / 무손실 마스터 락 (Anti-Degradation)</label>
+          <select
+            value={frame.antiDegrade || 'none'}
+            onChange={(e) => handleUpdate({ antiDegrade: e.target.value })}
+            style={{ width: '100%', borderColor: frame.antiDegrade && frame.antiDegrade !== 'none' ? '#dc2626' : undefined }}
+          >
+            {Object.entries(ANTI_DEGRADATION_OPTIONS).map(([key, val]) => (
               <option key={key} value={key}>{val.ko}</option>
             ))}
           </select>
